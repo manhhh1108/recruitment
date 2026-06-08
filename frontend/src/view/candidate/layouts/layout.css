@@ -1,0 +1,18 @@
+.sidebar-right {
+    margin-right: 43px;
+}
+.bell-new {
+    position: absolute;
+    font-size: 10px;
+    color: red;
+    bottom: 17px;
+    right: 26px;    
+}
+.msg-list {
+    right: -1cm;
+    font-size: 14.5px;
+    min-width: 340px;
+}
+.page-body {
+    background-color: #eceff2dd;
+}
