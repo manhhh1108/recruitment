@@ -10,7 +10,9 @@ import EmployerLayout from "./view/employer/layouts/Layout";
 import EmployerLogin from "./view/employer/auth/Login";
 import CandidateList from "./view/employer/candidates/CandidateList";
 import JobManagement from "./view/employer/jobs/JobManagement";
+import EmployerDashboard from "./view/employer/Dashboard";
 import CandidateLayout from "./view/candidate/management/layouts/CandidateLayout";
+import CandidateDashboard from "./view/candidate/management/Dashboard";
 import AppliedJobs from "./view/candidate/management/AppliedJobs";
 import SavedJobs from "./view/candidate/management/SavedJobs";
 import Signup from "./view/candidate/auth/Signup";
@@ -18,6 +20,9 @@ import Layout from "./view/candidate/layouts/Layout";
 import Profile from "./view/candidate/management/profile";
 import Resume from "./view/candidate/management/resumes";
 import Template from "./view/candidate/management/resumes/templates";
+import AdminLogin from "./view/admin/Login";
+import AdminLayout from "./view/admin/Layout";
+import AdminDashboard from "./view/admin/Dashboard";
 
 export const AppContext = createContext();
 
@@ -45,6 +50,7 @@ function App() {
                     element={
                       <CandidateLayout>
                         <Routes>
+                          <Route path="" element={<CandidateDashboard />} />
                           <Route
                             path="applied-jobs"
                             element={<AppliedJobs />}
@@ -70,6 +76,7 @@ function App() {
             element={
               <EmployerLayout>
                 <Routes>
+                  <Route path="" element={<EmployerDashboard />} />
                   <Route path="candidates" element={<CandidateList />} />
                   <Route path="jobs" element={<JobManagement />} />
                 </Routes>
@@ -77,6 +84,17 @@ function App() {
             }
           />
           <Route path="employer/login" element={<EmployerLogin />} />
+          <Route path="admin/login" element={<AdminLogin />} />
+          <Route
+            path="admin/*"
+            element={
+              <AdminLayout>
+                <Routes>
+                  <Route path="" element={<AdminDashboard />} />
+                </Routes>
+              </AdminLayout>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AppContext.Provider>

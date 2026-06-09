@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\EducationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -49,6 +50,7 @@ Route::controller(AuthController::class)->group(function () {
 
 Route::controller(EmployerController::class)->prefix('companies')->group(function () {
     Route::get('', 'index');
+    Route::get('dashboard', 'dashboard')->middleware('jwt');
     Route::get('{id}/getByID', 'show');
     Route::get('getHotList', 'getHotList');
     Route::delete('{id}', 'destroy');
@@ -68,11 +70,13 @@ Route::controller(JobController::class)->prefix('jobs')->group(function () {
     Route::get('{id}/getJobIndustries', 'getJobIndustries');
     Route::post('{id}/apply', 'apply')->middleware('jwt');
     Route::get('{id}/checkApplying', 'checkApplying')->middleware('jwt');
+    Route::delete('{id}/cancelApplying', 'cancelApplying')->middleware('jwt');
 });
 
 Route::controller(CandidateController::class)->prefix('candidates')->group(function () {
     // Route::get('', 'index');
     // Route::get('{id}', 'show')->middleware('jwt');
+    Route::get('dashboard', 'dashboard')->middleware('jwt');
     Route::get('getCurrent', 'getCurrent')->middleware('jwt');
     Route::post('update', 'update');
     Route::get('{id}/getAppliedJobs', 'getAppliedJobs');
@@ -172,4 +176,15 @@ Route::controller(ResumeController::class)->prefix('resumes')->group(function ()
     Route::post('', 'create');
     Route::post('update', 'update');
     Route::delete('{id}', 'destroy');
+});
+
+Route::controller(AdminController::class)->prefix('admin')->middleware('jwt')->group(function () {
+    Route::get('dashboard', 'dashboard');
+    Route::get('users', 'users');
+    Route::post('users/{id}/toggle', 'toggleUser');
+    Route::get('jobs', 'jobs');
+    Route::post('jobs/{id}/toggle', 'toggleJob');
+    Route::get('categories/{type}', 'categories');
+    Route::post('categories/{type}', 'storeCategory');
+    Route::post('categories/{type}/{id}', 'updateCategory');
 });

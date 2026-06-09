@@ -19,7 +19,7 @@ function CandidateList() {
   const [candidates, setCandidates] = useState([]);
   const [curCandidate, setCurCandidate] = useState({});
   const [keyword, setKeyword] = useState("");
-  const [status, setStatus] = useState("WAITING");
+  const [status, setStatus] = useState("pending");
   const [step, setStep] = useState("step1");
   const [showDialog, setShowDialog] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState("");
@@ -36,6 +36,20 @@ function CandidateList() {
   const displayedCandidates = selectedPosition
     ? groupedByPosition[selectedPosition] || []
     : candidates;
+  const statusText = {
+    pending: "Đã nộp",
+    viewed: "Nhà tuyển dụng đã xem",
+    suitable: "Phù hợp",
+    rejected: "Từ chối",
+    interview: "Mời phỏng vấn",
+    cancelled: "Đã hủy",
+    WAITING: "Đã nộp",
+    BROWSING_RESUME: "Đã xem hồ sơ",
+    RESUME_FAILED: "Từ chối hồ sơ",
+    BROWSING_INTERVIEW: "Mời phỏng vấn",
+    INTERVIEW_FAILED: "Từ chối phỏng vấn",
+    PASSED: "Phù hợp",
+  };
 
   const makeTabStyle = (tabName) => {
     return clsx(
@@ -55,18 +69,19 @@ function CandidateList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword, status]);
   useEffect(() => {
-    if (step === "step1") setStatus("WAITING");
-    else if (step === "step2") setStatus("BROWSING_INTERVIEW");
-    else if (step === "step3") setStatus("PASSED");
+    if (step === "step1") setStatus("pending");
+    else if (step === "step2") setStatus("interview");
+    else if (step === "step3") setStatus("suitable");
   }, [step]);
 
   const handleClickActionBtn = async (candidate, actType) => {
-    if (actType === "VIEWED" && candidate.status === "WAITING") {
+    if (actType === "VIEWED" && candidate.status === "pending") {
       await employerApi
         .processApplying({ ...candidate, actType })
         .then((res) => {
           console.log(res);
         });
+      await getCandidateList();
     }
     if (actType !== "VIEWED") {
       setShowDialog(true);
@@ -100,17 +115,26 @@ function CandidateList() {
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="step2">
-                <span className={makeTabStyle("step2")}>Duyệt phỏng vấn</span>
+                <span className={makeTabStyle("step2")}>Mời phỏng vấn</span>
               </Nav.Link>
             </Nav.Item>
             <Nav.Item>
               <Nav.Link eventKey="step3">
-                <span className={makeTabStyle("step3")}>Đã tiếp nhận</span>
+                <span className={makeTabStyle("step3")}>Hoàn tất</span>
               </Nav.Link>
             </Nav.Item>
           </Nav>
         </Tab.Container>
         <div className="mt-3" style={{ marginLeft: "45px" }}>
+          <div className="d-flex gap-3 mb-3 ts-smd">
+            <div className="border bg-mlight px-3 py-2">
+              Tổng hồ sơ: <span className="fw-600">{candidates.length}</span>
+            </div>
+            <div className="border bg-mlight px-3 py-2">
+              Vị trí có ứng viên:{" "}
+              <span className="fw-600">{positions.length}</span>
+            </div>
+          </div>
           <Form onSubmit={handleSubmit((data) => setKeyword(data.keyword))}>
             <Form.Group className="input-group" style={{ width: "35%" }}>
               <Form.Control
@@ -135,18 +159,15 @@ function CandidateList() {
                 >
                   {step === "step1" && (
                     <>
-                      <option value="WAITING">Chưa duyệt hồ sơ</option>
-                      <option value="RESUME_FAILED">Hồ sơ bị loại</option>
+                      <option value="pending">Chưa duyệt hồ sơ</option>
+                      <option value="viewed">Đã xem hồ sơ</option>
+                      <option value="rejected">Từ chối</option>
                     </>
                   )}
                   {step === "step2" && (
                     <>
-                      <option value="BROWSING_INTERVIEW">
-                        Chưa duyệt phỏng vấn
-                      </option>
-                      <option value="INTERVIEW_FAILED">
-                        Phỏng vấn bị loại
-                      </option>
+                      <option value="interview">Mời phỏng vấn</option>
+                      <option value="rejected">Từ chối</option>
                     </>
                   )}
                 </Form.Select>
@@ -195,8 +216,9 @@ function CandidateList() {
                     <th style={{ width: "17%" }}>Họ tên</th>
                     <th>Vị trí ứng tuyển</th>
                     <th style={{ width: "15%" }}>Thời gian</th>
+                    <th style={{ width: "13%" }}>Trạng thái</th>
                     <th style={{ width: "12%" }}>Số điện thoại</th>
-                    <th style={{ width: "18%" }}>Email</th>
+                    <th style={{ width: "16%" }}>Email</th>
                     <th style={{ width: "13%" }}>Hành động</th>
                   </tr>
                 </thead>
@@ -206,12 +228,17 @@ function CandidateList() {
                       <td>{item.lastname + " " + item.firstname}</td>
                       <td>{item.jname}</td>
                       <td>{item.appliedTime}</td>
+                      <td>
+                        <span className="badge bg-main">
+                          {statusText[item.status] || item.status}
+                        </span>
+                      </td>
                       <td>{item.phone}</td>
                       <td>{item.email}</td>
                       <td style={{ fontSize: "17px" }}>
-                        {status !== "PASSED" &&
-                        status !== "RESUME_FAILED" &&
-                        status !== "INTERVIEW_FAILED" ? (
+                        {item.status !== "suitable" &&
+                        item.status !== "rejected" &&
+                        item.status !== "cancelled" ? (
                           <>
                             <button
                               className="border-0 bg-white"

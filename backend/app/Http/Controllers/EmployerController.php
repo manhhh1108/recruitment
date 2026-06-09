@@ -88,9 +88,11 @@ class EmployerController extends Controller
 
         $keyword = $req->query('keyword'); //search by name, email, applied job of candidate
 
-        if ($req->status == 'WAITING' || $req->status == 'BROWSING_RESUME') {
-            $status = ['WAITING', 'BROWSING_RESUME'];
-        } else $status[] = $req->status;
+        if (!$req->status) {
+            $status = ['pending', 'viewed', 'interview', 'suitable', 'rejected', 'cancelled'];
+        } else {
+            $status = [$req->status];
+        }
 
         $candidates = DB::table('job_applying')
             ->join('jobs', 'job_id', '=', 'jobs.id')
@@ -99,6 +101,9 @@ class EmployerController extends Controller
             ->leftJoin('industries', 'job_industry.industry_id', '=', 'industries.id')
             ->whereIn('job_applying.status', $status)
             ->whereIn('job_applying.job_id', $job_ids)
+            ->when($req->filled('job_id'), function ($query) use ($req) {
+                return $query->where('job_applying.job_id', $req->job_id);
+            })
             ->when($keyword != null, function ($query) use ($keyword) {
                 return $query->where(function ($query2) use ($keyword) {
                     $query2->whereRaw('LOWER(jname) LIKE ?', ['%' . strtolower($keyword) . '%'])
@@ -114,6 +119,8 @@ class EmployerController extends Controller
                 'job_applying.job_id',
                 'job_applying.candidate_id',
                 'job_applying.cv_link',
+                'job_applying.cv_type',
+                'job_applying.resume_id',
                 'job_applying.status',
                 'job_applying.created_at',
                 'job_applying.updated_at',
@@ -145,24 +152,30 @@ class EmployerController extends Controller
         $currentTime = Carbon::parse(Carbon::now())->format('H:i d/m/Y');
         $company = Employer::where('user_id', '=', Auth::user()->id)->value('name');
 
-        if ($req->actType == "VIEWED") $nextStatus = "BROWSING_RESUME";
+        if ($req->status) {
+            $nextStatus = $req->status;
+            $msgName = "Trạng thái ứng tuyển được cập nhật, vị trí ";
+        } else if ($req->actType == "VIEWED") {
+            $nextStatus = "viewed";
+            $msgName = "Nhà tuyển dụng đã xem hồ sơ, vị trí ";
+        }
         else if ($req->actType == "ACCEPT") {
             if ($req->step == "step1") {
-                $nextStatus = "BROWSING_INTERVIEW";
+                $nextStatus = "interview";
                 $msgName = "Hồ sơ được chấp nhận, vị trí ";
             } else if ($req->step == "step2") {
-                $nextStatus = "PASSED";
+                $nextStatus = "suitable";
                 $msgName = "Chúc mừng bạn đã được nhận, vị trí ";
             }
         } else if ($req->actType == "REJECT") {
-            if ($req->step == "step1") {
-                $nextStatus = "RESUME_FAILED";
-                $msgName = "Hồ sơ bị loại, vị trí ";
-            } else if ($req->step == "step2") {
-                $nextStatus = "INTERVIEW_FAILED";
-                $msgName = "Phỏng vấn bị loại, vị trí ";
-            }
+            $nextStatus = "rejected";
+            $msgName = $req->step == "step2" ? "Phỏng vấn bị loại, vị trí " : "Hồ sơ bị loại, vị trí ";
         }
+
+        if (!isset($nextStatus)) {
+            return response()->json(['message' => 'Invalid status action'], 422);
+        }
+
         $msgName = $msgName . $req->jname . ', ' . $company . ', lúc ' . $currentTime;
         //update:
         DB::table('job_applying')
@@ -174,7 +187,7 @@ class EmployerController extends Controller
                 'status' => $nextStatus,
                 'updated_at' => Carbon::now(),
             ]);
-        if ($req->actType != "VIEWED") {
+        if ($req->actType != "VIEWED" || $req->status) {
             CandidateMessage::create(
                 [
                     'candidate_id' => $req->candidate_id,
@@ -188,6 +201,52 @@ class EmployerController extends Controller
         event(new NotifyCandidateEvent($msgName, $req->candidate_id));
 
         return response()->json("Updated successfully");
+    }
+
+    public function dashboard()
+    {
+        $employerId = Auth::user()->id;
+
+        $jobIds = Job::where('employer_id', $employerId)->pluck('id');
+        $totalJobs = $jobIds->count();
+        $activeJobs = Job::where('employer_id', $employerId)
+            ->where('is_active', 1)
+            ->where('expire_at', '>=', Carbon::today())
+            ->count();
+        $expiredJobs = Job::where('employer_id', $employerId)
+            ->where('expire_at', '<', Carbon::today())
+            ->count();
+        $inactiveJobs = Job::where('employer_id', $employerId)
+            ->where('is_active', 0)
+            ->count();
+        $totalApplications = DB::table('job_applying')
+            ->whereIn('job_id', $jobIds)
+            ->where('status', '!=', 'cancelled')
+            ->count();
+        $newApplicationsThisWeek = DB::table('job_applying')
+            ->whereIn('job_id', $jobIds)
+            ->where('created_at', '>=', Carbon::now()->subDays(7))
+            ->count();
+
+        $recentApplications = DB::table('job_applying')
+            ->join('jobs', 'job_applying.job_id', '=', 'jobs.id')
+            ->join('candidates', 'job_applying.candidate_id', '=', 'candidates.id')
+            ->whereIn('job_applying.job_id', $jobIds)
+            ->selectRaw('job_applying.*, jobs.jname, candidates.firstname, candidates.lastname, candidates.email,
+                        DATE_FORMAT(job_applying.created_at, "%d/%m/%Y %H:%i") as appliedTime')
+            ->orderByDesc('job_applying.created_at')
+            ->take(6)
+            ->get();
+
+        return response()->json([
+            'total_jobs' => $totalJobs,
+            'active_jobs' => $activeJobs,
+            'expired_jobs' => $expiredJobs,
+            'inactive_jobs' => $inactiveJobs,
+            'total_applications' => $totalApplications,
+            'new_applications_this_week' => $newApplicationsThisWeek,
+            'recent_applications' => $recentApplications,
+        ]);
     }
     public function getJobList(Request $req)
     {

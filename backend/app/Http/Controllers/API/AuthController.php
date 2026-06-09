@@ -30,7 +30,7 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        if (!$token || $user->role !== $request->role) { //check token và role của user
+        if (!$token || $user->role !== $request->role || !$user->is_active) { //check token, role và trạng thái của user
             return response()->json([
                 'message' => 'Unauthorized',
             ], 401);

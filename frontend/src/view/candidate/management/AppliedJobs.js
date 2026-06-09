@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import candidateApi from "../../../api/candidate";
+import jobApi from "../../../api/job";
 
 function AppliedJobs() {
   const nav = useNavigate();
@@ -12,6 +13,28 @@ function AppliedJobs() {
   const getAppliedJobs = async () => {
     const res = await candidateApi.getAppliedJobs(user.id);
     setJobs(res);
+  };
+
+  const statusText = {
+    pending: "Đã nộp",
+    viewed: "Nhà tuyển dụng đã xem",
+    suitable: "Phù hợp",
+    rejected: "Từ chối",
+    interview: "Mời phỏng vấn",
+    cancelled: "Đã hủy",
+    WAITING: "Đã nộp",
+    BROWSING_RESUME: "Nhà tuyển dụng đã xem",
+    RESUME_FAILED: "Từ chối",
+    BROWSING_INTERVIEW: "Mời phỏng vấn",
+    INTERVIEW_FAILED: "Từ chối sau phỏng vấn",
+    PASSED: "Phù hợp",
+  };
+
+  const handleCancel = async (jobId) => {
+    const choice = window.confirm("Bạn muốn hủy ứng tuyển công việc này?");
+    if (!choice) return;
+    await jobApi.cancelApplying(jobId);
+    await getAppliedJobs();
   };
 
   useEffect(() => {
@@ -41,6 +64,7 @@ function AppliedJobs() {
                 Trạng thái
               </th>
               <th className="fw-500">Hồ sơ</th>
+              <th className="fw-500">Thao tác</th>
             </tr>
           </thead>
           <tbody className="ts-smd">
@@ -57,13 +81,9 @@ function AppliedJobs() {
                 <td>{item.name}</td>
                 <td>{item.postDate} </td>
                 <td>
-                  {item.status === "WAITING" && "Đang chờ duyệt"}
-                  {item.status === "BROWSING_RESUME" && "Đang duyệt hồ sơ"}
-                  {item.status === "RESUME_FAILED" && "Bị từ chối hồ sơ"}
-                  {item.status === "BROWSING_INTERVIEW" &&
-                    "Đang duyệt phỏng vấn"}
-                  {item.status === "INTERVIEW_FAILED" && "Phỏng vấn thất bại"}
-                  {item.status === "PASSED" && "Được nhận"}
+                  <span className="badge bg-main">
+                    {statusText[item.status] || item.status}
+                  </span>
                 </td>
                 <td>
                   <a
@@ -75,6 +95,19 @@ function AppliedJobs() {
                   >
                     Xem
                   </a>
+                </td>
+                <td>
+                  {item.status === "pending" ? (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => handleCancel(item.id)}
+                    >
+                      Hủy
+                    </button>
+                  ) : (
+                    <span className="text-secondary">-</span>
+                  )}
                 </td>
               </tr>
             ))}

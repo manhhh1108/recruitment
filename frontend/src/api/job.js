@@ -34,6 +34,9 @@ const jobApi = {
   checkApplying: (id) => {
     return candidateAxios.get(`${prefix}/${id}/checkApplying`);
   },
+  cancelApplying: (id) => {
+    return candidateAxios.delete(`${prefix}/${id}/cancelApplying`);
+  },
 };
 
 export default jobApi;

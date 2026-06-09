@@ -16,6 +16,7 @@ import { FaIndustry } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import jobApi from "../../api/job";
 import candidateApi from "../../api/candidate";
+import resumeApi from "../../api/resume";
 import { MdOutlineAttachMoney } from "react-icons/md";
 import { IoMdPeople } from "react-icons/io";
 import dayjs from "dayjs";
@@ -33,10 +34,29 @@ function Job() {
   const user = useSelector((state) => state.candAuth.current);
   const isAuth = useSelector((state) => state.candAuth.isAuth);
   const [isApplied, setIsApplied] = useState(false);
+  const [applyStatus, setApplyStatus] = useState("");
   const [isUpload, setIsUpload] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [file, setFile] = useState();
+  const [resumes, setResumes] = useState([]);
+  const [selectedResumeId, setSelectedResumeId] = useState("");
   const [industries, setIndustries] = useState([]);
+  const isExpired = job.is_expired || dayjs(job.expire_at).endOf("day").isBefore(dayjs());
+
+  const statusText = {
+    pending: "Đã nộp hồ sơ",
+    viewed: "Nhà tuyển dụng đã xem",
+    suitable: "Phù hợp",
+    rejected: "Từ chối",
+    interview: "Mời phỏng vấn",
+    cancelled: "Đã hủy ứng tuyển",
+    WAITING: "Đã nộp hồ sơ",
+    BROWSING_RESUME: "Nhà tuyển dụng đã xem",
+    RESUME_FAILED: "Từ chối hồ sơ",
+    BROWSING_INTERVIEW: "Mời phỏng vấn",
+    INTERVIEW_FAILED: "Từ chối sau phỏng vấn",
+    PASSED: "Phù hợp",
+  };
 
   const getJobInf = async () => {
     const res = await jobApi.getById(id);
@@ -47,18 +67,43 @@ function Job() {
   const checkApplying = async () => {
     const res = await jobApi.checkApplying(id);
     setIsApplied(res.value);
+    setApplyStatus(res.status || "");
     console.log("is applying?", res.value);
   };
 
   const handleApply = async () => {
+    if (isExpired) {
+      alert("Tin tuyển dụng đã hết hạn nộp hồ sơ!");
+      return;
+    }
+    if (!isUpload && !selectedResumeId) {
+      alert("Vui lòng chọn CV trong hệ thống hoặc tải CV lên!");
+      return;
+    }
+    if (isUpload && !file) {
+      alert("Vui lòng chọn file CV!");
+      return;
+    }
     const formData = new FormData();
-    formData.append("cv", file);
-    formData.append("fname", file.name);
-    console.log(file);
+    if (isUpload) {
+      formData.append("cv", file);
+      formData.append("fname", file.name);
+    } else {
+      formData.append("resume_id", selectedResumeId);
+    }
 
     await jobApi.apply(id, formData);
     alert("Ứng tuyển thành công!");
     window.location.reload();
+  };
+
+  const handleCancelApplying = async () => {
+    const choice = window.confirm("Bạn muốn hủy ứng tuyển vị trí này?");
+    if (!choice) return;
+    await jobApi.cancelApplying(id);
+    setIsApplied(false);
+    setApplyStatus("");
+    alert("Đã hủy ứng tuyển!");
   };
 
   const getFileInf = (e) => {
@@ -73,6 +118,11 @@ function Job() {
     const res = await candidateApi.checkJobSaved(id);
     setIsSaved(res.value);
     console.log("save job?:", res.value);
+  };
+  const getResumes = async () => {
+    const res = await resumeApi.getByCurrentCandidate();
+    setResumes(res);
+    if (res.length > 0) setSelectedResumeId(res[0].id);
   };
   const handleClickSaveBtn = async (status) => {
     const data = { status: status };
@@ -91,6 +141,7 @@ function Job() {
     if (isAuth) {
       checkApplying();
       checkJobSaved();
+      getResumes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuth]);
@@ -130,11 +181,23 @@ function Job() {
                       className="btn btn-primary ts-sm"
                       data-bs-toggle={isAuth ? "modal" : ""}
                       data-bs-target={isAuth ? "#applying_dialog" : ""}
-                      disabled={isApplied === true}
+                      disabled={isApplied === true || isExpired}
                       onClick={checkLoggedIn}
                     >
-                      {isApplied === true ? "Đã ứng tuyển" : "Ứng tuyển"}
+                      {isExpired
+                        ? "Hết hạn ứng tuyển"
+                        : isApplied === true
+                        ? statusText[applyStatus] || "Đã ứng tuyển"
+                        : "Ứng tuyển"}
                     </button>
+                    {isApplied && applyStatus === "pending" && (
+                      <button
+                        className="btn border-warning text-warning ms-3 ts-sm"
+                        onClick={handleCancelApplying}
+                      >
+                        Hủy ứng tuyển
+                      </button>
+                    )}
                     <button
                       className="btn border-danger text-danger ms-5 ts-sm"
                       onClick={() => handleClickSaveBtn(!isSaved)}
@@ -149,6 +212,15 @@ function Job() {
                         </div>
                       )}
                     </button>
+                    <div className="mt-2 d-flex gap-2 flex-wrap">
+                      {isApplied && (
+                        <span className="badge bg-main">
+                          {statusText[applyStatus] || "Đã ứng tuyển"}
+                        </span>
+                      )}
+                      {isSaved && <span className="badge bg-danger">Đã lưu việc</span>}
+                      {isExpired && <span className="badge bg-secondary">Đã hết hạn</span>}
+                    </div>
                     {isAuth && (
                       <div className="modal fade" id="applying_dialog">
                         <div
@@ -209,6 +281,25 @@ function Job() {
                                 Hồ sơ của bạn:
                                 <br />
                                 <div className="">
+                                  {resumes.length > 0 && (
+                                    <select
+                                      className="form-select mt-2 w-50"
+                                      value={selectedResumeId}
+                                      disabled={isUpload}
+                                      onChange={(e) =>
+                                        setSelectedResumeId(e.target.value)
+                                      }
+                                    >
+                                      {resumes.map((resume) => (
+                                        <option
+                                          key={`resume_option_${resume.id}`}
+                                          value={resume.id}
+                                        >
+                                          {resume.title || `CV #${resume.id}`}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
                                   <button
                                     type="button"
                                     className="btn btn-outline-primary mt-2 w-50"
@@ -228,9 +319,13 @@ function Job() {
                                     className="btn btn-outline-primary mt-3 w-50"
                                     onClick={() => {
                                       setIsUpload(!isUpload);
+                                      setFile(undefined);
                                     }}
                                   >
-                                    <BsUpload /> Tải lên hồ sơ có sẵn
+                                    <BsUpload />{" "}
+                                    {isUpload
+                                      ? "Dùng CV trong hệ thống"
+                                      : "Tải lên hồ sơ có sẵn"}
                                   </button>
                                   {isUpload && (
                                     <div>
@@ -420,6 +515,24 @@ function Job() {
               </div>
               <div className="d-flex">
                 <div className="text-secondary" style={{ minWidth: "90px" }}>
+                  Website:
+                </div>
+                <div className="text-truncate">
+                  {job.employer.website ? (
+                    <a
+                      href={job.employer.website}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {job.employer.website}
+                    </a>
+                  ) : (
+                    "Chưa cập nhật"
+                  )}
+                </div>
+              </div>
+              <div className="d-flex">
+                <div className="text-secondary" style={{ minWidth: "90px" }}>
                   <BsFillGeoAltFill className="me-1 mb-1" />
                   Địa điểm:
                 </div>
@@ -439,9 +552,30 @@ function Job() {
               </Button>
             </div>
           </div>
-          {/* <div className="bg-white mt-3 p-2">
-            kkk
-          </div> */}
+          <div className="bg-white mt-3 p-3 shadow-sm">
+            <h6 className="text-main mb-3">Việc làm tương tự</h6>
+            {job.similar_jobs?.length > 0 ? (
+              job.similar_jobs.map((item) => (
+                <div
+                  key={`similar_job_${item.id}`}
+                  className="border-bottom pb-2 mb-2 pointer"
+                  onClick={() => nav(`/jobs/${item.id}`)}
+                >
+                  <div className="fw-600 hover-text-main">{item.jname}</div>
+                  <div className="ts-smd text-secondary text-truncate">
+                    {item.employer?.name}
+                  </div>
+                  <div className="ts-sm">
+                    {item.min_salary
+                      ? `${item.min_salary} - ${item.max_salary} triệu VND`
+                      : "Lương thỏa thuận"}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="ts-smd text-secondary">Chưa có gợi ý phù hợp</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

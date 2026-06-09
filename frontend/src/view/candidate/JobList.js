@@ -35,6 +35,7 @@ function JobList() {
   const [selectedLocations, setSelectedLocations] = useState([]);
 
   const [totalPage, setTotalPage] = useState(1);
+  const [totalJobs, setTotalJobs] = useState(0);
   const [curPage, setCurPage] = useState(1);
   const [filterConditions, setFilterConditions] = useState({});
   const [isSearchLoading, setIsSearchLoading] = useState(false);
@@ -46,6 +47,7 @@ function JobList() {
     });
     setJobs(res.data);
     setTotalPage(res.last_page);
+    setTotalJobs(res.total || 0);
   };
   const getAllIndustries = async () => {
     const res = await industryApi.getAll();
@@ -159,22 +161,6 @@ function JobList() {
                   <option value="30">Trên 30 triệu</option>
                   <option value="40">Trên 40 triệu</option>
                   <option value="50">Trên 50 triệu</option>
-                  <option value="5">Trên 5 triệu</option>
-                  <option value="10">Trên 10 triệu</option>
-                  <option value="15">Trên 15 triệu</option>
-                  <option value="20">Trên 20 triệu</option>
-                  <option value="25">Trên 25 triệu</option>
-                  <option value="30">Trên 30 triệu</option>
-                  <option value="40">Trên 40 triệu</option>
-                  <option value="50">Trên 50 triệu</option>
-                  <option value="5">Trên 5 triệu</option>
-                  <option value="10">Trên 10 triệu</option>
-                  <option value="15">Trên 15 triệu</option>
-                  <option value="20">Trên 20 triệu</option>
-                  <option value="25">Trên 25 triệu</option>
-                  <option value="30">Trên 30 triệu</option>
-                  <option value="40">Trên 40 triệu</option>
-                  <option value="50">Trên 50 triệu</option>
                 </select>
               </div>
               <div>
@@ -198,12 +184,29 @@ function JobList() {
                 </select>
               </div>
               <div>
+                <select className="form-select" {...register("work_mode")}>
+                  <option value="">Địa điểm làm việc</option>
+                  <option value="remote">Remote</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="on-site">On-site</option>
+                </select>
+              </div>
+            </div>
+            <div className="row row-cols-lg-4 gap-1 gap-lg-0 mt-2 ps-3">
+              <div>
                 <select className="form-select" {...register("posting_period")}>
                   <option value="">Đăng trong vòng</option>
                   <option value="3">4 ngày trước</option>
                   <option value="7">1 tuần trước</option>
                   <option value="14">2 tuần trước</option>
                   <option value="30">1 tháng trước</option>
+                </select>
+              </div>
+              <div>
+                <select className="form-select" {...register("sort_by")}>
+                  <option value="latest">Mới nhất</option>
+                  <option value="salary_high">Lương cao nhất</option>
+                  <option value="deadline">Sắp hết hạn</option>
                 </select>
               </div>
             </div>
@@ -223,6 +226,12 @@ function JobList() {
           </div>
         </div>
       </Form>
+      <div className="d-flex justify-content-between align-items-center mt-4">
+        <h5 className="mb-0 text-main">Tìm thấy {totalJobs} việc làm</h5>
+        {Object.keys(filterConditions).length > 0 && (
+          <span className="ts-smd text-secondary">Kết quả phù hợp với bộ lọc hiện tại</span>
+        )}
+      </div>
       <div className="row row-cols-lg-3 mt-4">
         {jobs.length > 0 ? (
           jobs.map((job) => (

@@ -15,6 +15,9 @@ const employerApi = {
   getHotList: () => {
     return commonAxios.get(`${prefix}/getHotList`);
   },
+  getDashboard: () => {
+    return employerAxios.get(`${prefix}/dashboard`);
+  },
   // destroy: (id) => {
   //   return commonAxios.delete(`${prefix}/${id}/destroy`);
   // },
@@ -27,8 +30,8 @@ const employerApi = {
   getJobList: (id, keyword) => {
     return commonAxios.get(`${prefix}/${id}/getJobList?keyword=${keyword}`);
   },
-  getCandidateList: (keyword, status) => {
-    let url = `${prefix}/getCandidateList?keyword=${keyword}&status=${status}`;
+  getCandidateList: (keyword, status, jobId = "") => {
+    let url = `${prefix}/getCandidateList?keyword=${keyword || ""}&status=${status || ""}&job_id=${jobId || ""}`;
     return employerAxios.get(url);
   },
   processApplying: (data) => {
