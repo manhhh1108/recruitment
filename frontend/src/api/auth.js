@@ -9,6 +9,9 @@ const authApi = {
   register: (params) => {
     return commonAxios.post("/register", params);
   },
+  registerEmployer: (params) => {
+    return commonAxios.post("/register-employer", params);
+  },
   logout: (role) => {
     if (role === 1) return candidateAxios.get("/logout");
     if (role === 2) return employerAxios.get("/logout");  },

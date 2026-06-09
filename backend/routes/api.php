@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login');
     Route::post('register', 'register');
+    Route::post('register-employer', 'registerEmployer');
     Route::get('logout', 'logout');
     Route::get('refresh', 'refresh');
     Route::get('getMe', 'me');

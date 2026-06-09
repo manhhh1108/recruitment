@@ -8,6 +8,7 @@ import JobList from "./view/candidate/JobList";
 import Job from "./view/candidate/Job";
 import EmployerLayout from "./view/employer/layouts/Layout";
 import EmployerLogin from "./view/employer/auth/Login";
+import EmployerSignup from "./view/employer/auth/Signup";
 import CandidateList from "./view/employer/candidates/CandidateList";
 import JobManagement from "./view/employer/jobs/JobManagement";
 import EmployerDashboard from "./view/employer/Dashboard";
@@ -84,6 +85,7 @@ function App() {
             }
           />
           <Route path="employer/login" element={<EmployerLogin />} />
+          <Route path="employer/register" element={<EmployerSignup />} />
           <Route path="admin/login" element={<AdminLogin />} />
           <Route
             path="admin/*"

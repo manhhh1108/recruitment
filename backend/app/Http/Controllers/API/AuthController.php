@@ -4,9 +4,11 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
+use App\Models\Employer;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 //use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
@@ -103,6 +105,50 @@ class AuthController extends Controller
             //     'token' => $token,
             //     'type' => 'bearer',
             // ]
+        ], 201);
+    }
+
+    public function registerEmployer(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255|unique:users',
+            'password' => 'required|string|min:6',
+            'name' => 'required|string|max:150',
+            'address' => 'required|string|max:255',
+            'contact_name' => 'nullable|string|max:60',
+            'phone' => 'nullable|string|max:15',
+            'website' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $user = DB::transaction(function () use ($request) {
+            $user = User::create([
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 2,
+                'is_active' => 1,
+            ]);
+
+            Employer::create([
+                'id' => $user->id,
+                'user_id' => $user->id,
+                'name' => $request->name,
+                'address' => $request->address,
+                'contact_name' => $request->contact_name,
+                'phone' => $request->phone,
+                'website' => $request->website,
+                'description' => $request->description,
+                'logo' => '',
+                'is_hot' => 0,
+                'is_active' => 1,
+            ]);
+
+            return $user;
+        });
+
+        return response()->json([
+            'message' => 'Employer created successfully',
+            'user' => $user,
         ], 201);
     }
 
