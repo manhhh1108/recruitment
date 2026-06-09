@@ -1,4 +1,4 @@
-import { BsEye, BsSearch } from "react-icons/bs";
+import { BsCopy, BsEye, BsSearch } from "react-icons/bs";
 import { useEffect, useState } from "react";
 import "./style.css";
 import { useForm } from "react-hook-form";
@@ -11,6 +11,8 @@ import jlevelApi from "../../../api/jlevel";
 import industryApi from "../../../api/industry";
 import locationApi from "../../../api/location";
 import employerApi from "../../../api/employer";
+import jobApi from "../../../api/job";
+import { toast } from "react-toastify";
 
 function JobManagement() {
   const [jobs, setJobs] = useState([]);
@@ -54,9 +56,15 @@ function JobManagement() {
     let temp_jobs = [...jobs];
     const data = { status: status };
     await employerApi.changeJobStatus(job_id, data);
-    alert("Cập nhật thành công!");
+    toast.success("Cập nhật thành công!");
     temp_jobs[index].is_active = status;
     setJobs(temp_jobs);
+  };
+
+  const handleDuplicateJob = async (jobId) => {
+    await jobApi.duplicate(jobId);
+    toast.success("Đã sao chép việc làm");
+    getJobList();
   };
 
   useEffect(() => {
@@ -105,12 +113,14 @@ function JobManagement() {
               Tạo mới
             </button>
           </div>
-          <table className="table border text-center shadow-sm" style={{ width: "93%" }}>
+          <div className="table-responsive" style={{ width: "93%" }}>
+          <table className="table border text-center shadow-sm">
             <thead className="table-primary ts-smd">
               <tr>
                 <th style={{ width: "25%" }}>Tên</th>
                 <th style={{ width: "13%" }}>Hình thức</th>
                 <th style={{ width: "13%" }}>Cấp bậc</th>
+                <th style={{ width: "10%" }}>Ứng viên</th>
                 <th style={{ width: "15%" }}>Thời gian đăng</th>
                 <th style={{ width: "13%" }}>Thời hạn</th>
                 <th>Trạng thái</th>
@@ -124,6 +134,9 @@ function JobManagement() {
                     <td>{item.jname}</td>
                     <td>{item.jtype_name}</td>
                     <td>{item.jlevel_name} </td>
+                    <td>
+                      <span className="badge bg-main">{item.application_count || 0}</span>
+                    </td>
                     <td>{item.postTime}</td>
                     <td>{item.deadline}</td>
                     <td>
@@ -151,6 +164,12 @@ function JobManagement() {
                         data-bs-target="#jobDetail"
                         onClick={() => handleClickActBtn(item)}
                       />
+                      <BsCopy
+                        className="ms-2 text-main"
+                        style={{ cursor: "pointer" }}
+                        title="Sao chép việc làm"
+                        onClick={() => handleDuplicateJob(item.id)}
+                      />
                       {/* <BsTrash3
                       className="ms-2 text-danger"
                       style={{ cursor: "pointer" }}
@@ -162,7 +181,12 @@ function JobManagement() {
                 ))}
             </tbody>
           </table>
-          {jobs.length === 0 && <h5>Không có bản ghi nào</h5>}
+          </div>
+          {jobs.length === 0 && (
+            <div className="border bg-mlight p-4 text-center" style={{ width: "93%" }}>
+              Chưa có việc làm nào
+            </div>
+          )}
           <JobDetail
             inf={curJob}
             jtypes={jtypes}

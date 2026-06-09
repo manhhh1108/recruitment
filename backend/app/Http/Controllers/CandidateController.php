@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Candidate;
 use App\Models\Job;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class CandidateController extends Controller
 {
@@ -19,6 +19,7 @@ class CandidateController extends Controller
     // }
     public function getCurrent()
     {
+        $this->authorizeCandidate();
         $id = Auth::user()->id;
         $candidate = Candidate::find($id);
 
@@ -27,6 +28,7 @@ class CandidateController extends Controller
 
     public function update(Request $req)
     {
+        $this->authorizeCandidate();
         $id = Auth::user()->id;
         $candidate = Candidate::find($id);
 
@@ -42,20 +44,23 @@ class CandidateController extends Controller
 
         $file = $req->file('image');
         if ($file) {
-            $fname = 'avatar_candidate_' . '_' . $candidate->id;
-            $path =  env('APP_URL') . '/storage/' . $file->storeAs('avatar_images', $fname, 'public');
+            $fname = 'avatar_candidate_'.'_'.$candidate->id;
+            $path = env('APP_URL').'/storage/'.$file->storeAs('avatar_images', $fname, 'public');
             $candidate->avatar = $path;
         }
         if ($req->delete_img) {
-            $candidate->avatar = NULL;
+            $candidate->avatar = null;
         }
         $candidate->save();
+
         // return response()->json($req);
         return response()->json('updated successfully');
     }
 
     public function getAppliedJobs($id)
     {
+        $this->authorizeCandidate();
+        $id = Auth::id();
         $jobs = Job::join('job_applying', 'id', '=', 'job_id')
             ->join('employers', 'employer_id', '=', 'employers.id')
             ->where('candidate_id', $id)
@@ -77,6 +82,7 @@ class CandidateController extends Controller
 
     public function dashboard()
     {
+        $this->authorizeCandidate();
         $candidateId = Auth::user()->id;
         $candidate = Candidate::find($candidateId);
 
@@ -143,9 +149,11 @@ class CandidateController extends Controller
             'recommended_jobs' => $recommendedJobs,
         ]);
     }
+
     public function getSavedJobs($id)
     {
-        // $candidate_id = Auth::user()->id;
+        $this->authorizeCandidate();
+        $id = Auth::id();
         $jobs = Job::with(['employer', 'locations'])
             ->join('saved_jobs', 'id', '=', 'job_id')
             ->where('candidate_id', $id)
@@ -154,12 +162,14 @@ class CandidateController extends Controller
 
         return response()->json($jobs);
     }
+
     public function checkJobSaved($job_id)
     {
+        $this->authorizeCandidate();
         $candidate_id = Auth::user()->id;
         $res = DB::table('saved_jobs')->where([
             ['candidate_id', '=', $candidate_id],
-            ['job_id', '=', $job_id]
+            ['job_id', '=', $job_id],
         ])->exists();
 
         if ($res) {
@@ -168,20 +178,28 @@ class CandidateController extends Controller
             return response()->json(['value' => false]);
         }
     }
-    public function processJobSaving(Request $req)
+
+    public function processJobSaving(Request $req, $job_id)
     {
+        $this->authorizeCandidate();
         $candidate_id = Auth::user()->id;
         if ($req->status == true) {
-            DB::table('saved_jobs')->insert([
-                ['candidate_id' => $candidate_id, 'job_id' => $req->job_id]
+            DB::table('saved_jobs')->updateOrInsert([
+                'candidate_id' => $candidate_id,
+                'job_id' => $job_id,
             ]);
-        } else if ($req->status == false) {
+        } elseif ($req->status == false) {
             DB::table('saved_jobs')->where([
                 ['candidate_id', '=', $candidate_id],
-                ['job_id', '=', $req->job_id]
+                ['job_id', '=', $job_id],
             ])->delete();
         }
 
         return response()->json('Updated successfully');
+    }
+
+    private function authorizeCandidate(): void
+    {
+        abort_unless((int) Auth::user()?->role === 1, 403);
     }
 }

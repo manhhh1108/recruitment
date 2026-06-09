@@ -20,24 +20,21 @@ function Login() {
     //add role 1(candidate)
     user.role = 1;
     setIsLoading(true);
-    await authApi
-      .login(user)
-      .then((res) => {
-        console.log(res);
-        dispatch(candAuthActions.setCurrentCandidate(res.user));
-        localStorage.setItem("candidate_jwt", res.authorization.token);
-        if (window.location.pathname === "/sign-up") {
-          navigate("/");
-        } else {
-          const closeBtn = document.getElementById("closeBtn");
-          closeBtn.click();
-          document.querySelector('button.resetBtn').click();
-        }
-      })
-      .catch((error) => {
-        // console.log(error);
-        setIsError(true);
-      });
+    setIsError(false);
+    try {
+      const res = await authApi.login(user);
+      dispatch(candAuthActions.setCurrentCandidate(res.user));
+      localStorage.setItem("candidate_jwt", res.authorization.token);
+      if (window.location.pathname === "/sign-up") {
+        navigate("/");
+      } else {
+        document.getElementById("closeBtn")?.click();
+        document.querySelector("button.resetBtn")?.click();
+      }
+    } catch (error) {
+      localStorage.removeItem("candidate_jwt");
+      setIsError(true);
+    }
       setIsLoading(false);
   };
 

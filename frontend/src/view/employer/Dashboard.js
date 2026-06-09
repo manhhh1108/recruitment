@@ -1,6 +1,29 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BsBriefcase, BsClockHistory, BsPeople, BsPersonPlus } from "react-icons/bs";
 import employerApi from "../../api/employer";
+
+function MiniBars({ items = [], labelKey = "month", statusText = {} }) {
+  const max = Math.max(...items.map((item) => Number(item.total)), 1);
+
+  return (
+    <div className="border p-3 h-100">
+      <div className="fw-600 text-main mb-3">Thống kê ứng tuyển</div>
+      {items.length === 0 && <div className="text-secondary">Chưa có dữ liệu</div>}
+      {items.map((item) => (
+        <div className="d-flex align-items-center gap-2 mb-2" key={item[labelKey]}>
+          <div className="ts-sm text-secondary" style={{ width: "94px" }}>
+            {statusText[item[labelKey]] || item[labelKey]}
+          </div>
+          <div className="progress flex-fill" style={{ height: "10px" }}>
+            <div className="progress-bar bg-main" style={{ width: `${(item.total / max) * 100}%` }} />
+          </div>
+          <div className="fw-600 ts-sm" style={{ width: "28px" }}>{item.total}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function Dashboard() {
   const nav = useNavigate();
@@ -12,6 +35,8 @@ function Dashboard() {
     total_applications: 0,
     new_applications_this_week: 0,
     recent_applications: [],
+    applications_by_month: [],
+    applications_by_status: [],
   });
 
   const getDashboard = async () => {
@@ -24,12 +49,12 @@ function Dashboard() {
   }, []);
 
   const stats = [
-    { label: "Tổng tin tuyển dụng", value: data.total_jobs },
-    { label: "Tin đang hoạt động", value: data.active_jobs },
-    { label: "Tin đã hết hạn", value: data.expired_jobs },
-    { label: "Tin đang tắt", value: data.inactive_jobs },
-    { label: "Tổng ứng viên", value: data.total_applications },
-    { label: "Ứng viên mới trong tuần", value: data.new_applications_this_week },
+    { label: "Tổng tin tuyển dụng", value: data.total_jobs, icon: <BsBriefcase /> },
+    { label: "Tin đang hoạt động", value: data.active_jobs, icon: <BsBriefcase /> },
+    { label: "Tin đã hết hạn", value: data.expired_jobs, icon: <BsClockHistory /> },
+    { label: "Tin đang tắt", value: data.inactive_jobs, icon: <BsClockHistory /> },
+    { label: "Tổng ứng viên", value: data.total_applications, icon: <BsPeople /> },
+    { label: "Ứng viên mới trong tuần", value: data.new_applications_this_week, icon: <BsPersonPlus /> },
   ];
 
   const statusText = {
@@ -48,11 +73,24 @@ function Dashboard() {
         {stats.map((item) => (
           <div className="col" key={item.label}>
             <div className="border bg-mlight p-3 h-100">
-              <div className="text-secondary ts-smd">{item.label}</div>
-              <div className="fs-4 fw-600 text-main">{item.value}</div>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <div className="text-secondary ts-smd">{item.label}</div>
+                  <div className="fs-4 fw-600 text-main">{item.value}</div>
+                </div>
+                <div className="fs-3 text-main">{item.icon}</div>
+              </div>
             </div>
           </div>
         ))}
+      </div>
+      <div className="row g-3 mt-2" style={{ width: "93%" }}>
+        <div className="col-md-6">
+          <MiniBars items={data.applications_by_month} />
+        </div>
+        <div className="col-md-6">
+          <MiniBars items={data.applications_by_status} labelKey="status" statusText={statusText} />
+        </div>
       </div>
       <div className="d-flex justify-content-between align-items-center mt-4" style={{ width: "93%" }}>
         <h5 className="text-main mb-0">Ứng viên mới nhất</h5>
@@ -63,7 +101,8 @@ function Dashboard() {
           Xem tất cả
         </button>
       </div>
-      <table className="table border text-center shadow-sm mt-3" style={{ width: "93%" }}>
+      <div className="table-responsive" style={{ width: "93%" }}>
+      <table className="table border text-center shadow-sm mt-3">
         <thead className="table-primary ts-smd">
           <tr>
             <th>Ứng viên</th>
@@ -89,7 +128,12 @@ function Dashboard() {
           ))}
         </tbody>
       </table>
-      {data.recent_applications.length === 0 && <h5>Chưa có ứng viên mới</h5>}
+      </div>
+      {data.recent_applications.length === 0 && (
+        <div className="border bg-mlight p-4 text-center" style={{ width: "93%" }}>
+          Chưa có ứng viên mới
+        </div>
+      )}
     </div>
   );
 }

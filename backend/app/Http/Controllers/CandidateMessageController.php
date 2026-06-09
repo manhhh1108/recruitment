@@ -26,4 +26,12 @@ class CandidateMessageController extends Controller
 
         return response()->json($msg);
     }
+
+    public function updateUnreadMsg($id)
+    {
+        $res = CandidateMessage::where('id', '=', $id)
+            ->update(['isRead' => 0]);
+
+        return response()->json($res ? 'Updated successfully!' : 'Updated failed!');
+    }
 }

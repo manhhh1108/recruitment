@@ -2,13 +2,11 @@
 
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\EducationController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\CandidateController;
 use App\Http\Controllers\CandidateMessageController;
 use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\EducationController;
 use App\Http\Controllers\EmployerController;
 use App\Http\Controllers\ExperienceController;
 use App\Http\Controllers\IndustryController;
@@ -21,8 +19,8 @@ use App\Http\Controllers\PrizeController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\SkillController;
-use App\Models\CandidateMessage;
-use App\Models\Employer;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,16 +55,18 @@ Route::controller(EmployerController::class)->prefix('companies')->group(functio
     Route::get('{id}/getComJobs', 'getComJobs');
     Route::get('{id}/getJobList', 'getJobList');
     Route::get('getCandidateList', 'getCandidateList')->middleware('jwt');
+    Route::get('candidateDetail', 'getCandidateDetail')->middleware('jwt');
     Route::post('processApplying', 'processApplying')->middleware('jwt');
-    Route::post('{job_id}/changeJobStatus', 'changeJobStatus');
+    Route::post('{job_id}/changeJobStatus', 'changeJobStatus')->middleware('jwt');
 });
 
 Route::controller(JobController::class)->prefix('jobs')->group(function () {
     Route::get('', 'index');
     Route::get('{id}/getByID', 'show');
     Route::get('getHotList', 'getHotList');
-    Route::post('', 'create');
-    Route::post('{id}/update', 'update');
+    Route::post('', 'create')->middleware('jwt');
+    Route::post('{id}/update', 'update')->middleware('jwt');
+    Route::post('{id}/duplicate', 'duplicate')->middleware('jwt');
     Route::get('{id}/getJobIndustries', 'getJobIndustries');
     Route::post('{id}/apply', 'apply')->middleware('jwt');
     Route::get('{id}/checkApplying', 'checkApplying')->middleware('jwt');
@@ -78,11 +78,11 @@ Route::controller(CandidateController::class)->prefix('candidates')->group(funct
     // Route::get('{id}', 'show')->middleware('jwt');
     Route::get('dashboard', 'dashboard')->middleware('jwt');
     Route::get('getCurrent', 'getCurrent')->middleware('jwt');
-    Route::post('update', 'update');
-    Route::get('{id}/getAppliedJobs', 'getAppliedJobs');
-    Route::get('{id}/getSavedJobs', 'getSavedJobs');
-    Route::post('{job_id}/processJobSaving', 'processJobSaving');
-    Route::get('{job_id}/checkJobSaved', 'checkJobSaved');
+    Route::post('update', 'update')->middleware('jwt');
+    Route::get('{id}/getAppliedJobs', 'getAppliedJobs')->middleware('jwt');
+    Route::get('{id}/getSavedJobs', 'getSavedJobs')->middleware('jwt');
+    Route::post('{job_id}/processJobSaving', 'processJobSaving')->middleware('jwt');
+    Route::get('{job_id}/checkJobSaved', 'checkJobSaved')->middleware('jwt');
 });
 
 Route::controller(IndustryController::class)->prefix('industries')->group(function () {
@@ -104,6 +104,7 @@ Route::controller(JlevelController::class)->prefix('jlevels')->group(function ()
 Route::controller(CandidateMessageController::class)->prefix('cand-msgs')->group(function () {
     Route::get('{id}/getByCandidateID', 'getByCandidateID')->middleware('jwt');
     Route::get('{id}/updateReadMsg', 'updateReadMsg');
+    Route::get('{id}/updateUnreadMsg', 'updateUnreadMsg')->middleware('jwt');
 });
 
 Route::controller(EducationController::class)->prefix('educations')->group(function () {
@@ -187,4 +188,5 @@ Route::controller(AdminController::class)->prefix('admin')->middleware('jwt')->g
     Route::get('categories/{type}', 'categories');
     Route::post('categories/{type}', 'storeCategory');
     Route::post('categories/{type}/{id}', 'updateCategory');
+    Route::delete('categories/{type}/{id}', 'destroyCategory');
 });

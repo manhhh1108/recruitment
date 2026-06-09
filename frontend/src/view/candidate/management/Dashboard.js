@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BsBookmarkCheck, BsBriefcase, BsFileEarmarkText, BsPersonCheck } from "react-icons/bs";
 import candidateApi from "../../../api/candidate";
 
 function Dashboard() {
@@ -23,10 +24,10 @@ function Dashboard() {
   }, []);
 
   const stats = [
-    { label: "Việc đã ứng tuyển", value: data.applied_count },
-    { label: "Việc đã lưu", value: data.saved_count },
-    { label: "CV đã tạo", value: data.resume_count },
-    { label: "Hoàn thiện hồ sơ", value: `${data.profile_percent}%` },
+    { label: "Việc đã ứng tuyển", value: data.applied_count, icon: <BsBriefcase /> },
+    { label: "Việc đã lưu", value: data.saved_count, icon: <BsBookmarkCheck /> },
+    { label: "CV đã tạo", value: data.resume_count, icon: <BsFileEarmarkText /> },
+    { label: "Hoàn thiện hồ sơ", value: `${data.profile_percent}%`, icon: <BsPersonCheck /> },
   ];
 
   return (
@@ -36,8 +37,13 @@ function Dashboard() {
         {stats.map((item) => (
           <div className="col" key={item.label}>
             <div className="border bg-mlight p-3 h-100">
-              <div className="text-secondary ts-smd">{item.label}</div>
-              <div className="fs-4 fw-600 text-main">{item.value}</div>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <div className="text-secondary ts-smd">{item.label}</div>
+                  <div className="fs-4 fw-600 text-main">{item.value}</div>
+                </div>
+                <div className="fs-3 text-main">{item.icon}</div>
+              </div>
             </div>
           </div>
         ))}
@@ -70,6 +76,7 @@ function Dashboard() {
       </div>
       <div className="mt-4">
         <h5 className="text-main mb-3">Việc làm phù hợp với hồ sơ của bạn</h5>
+        <div className="table-responsive">
         <table className="table border shadow-sm">
           <thead className="table-primary">
             <tr>
@@ -101,8 +108,11 @@ function Dashboard() {
             ))}
           </tbody>
         </table>
+        </div>
         {data.recommended_jobs.length === 0 && (
-          <h5>Chưa có việc làm gợi ý phù hợp</h5>
+          <div className="border bg-mlight p-4 text-center">
+            Chưa có việc làm gợi ý phù hợp
+          </div>
         )}
       </div>
     </div>

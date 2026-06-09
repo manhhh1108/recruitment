@@ -1,11 +1,11 @@
-import { AiFillProfile, AiTwotoneAppstore } from "react-icons/ai";
+import { AiTwotoneAppstore } from "react-icons/ai";
 import {
   BsFillBriefcaseFill,
   BsFillPeopleFill,
   BsFillPersonFill,
   // BsMessenger,
 } from "react-icons/bs";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./layout_style.css";
 import { useContext, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,26 +16,40 @@ import clsx from "clsx";
 
 function Layout(props) {
   const nav = useNavigate();
+  const location = useLocation();
   const { currentPage, setCurrentPage } = useContext(AppContext);
 
   const company = useSelector((state) => state.employerAuth.current.employer);
-  const isAuth = useSelector((state) => state.employerAuth.isAuth);
   const dispatch = useDispatch();
 
   const handleLogout = async () => {
-    await authApi.logout(2);
+    try {
+      await authApi.logout(2);
+    } catch (e) {
+      // Token may already be expired; client state still needs to be cleared.
+    }
     dispatch(employerAuthActions.logout());
     localStorage.removeItem("employer_jwt");
     nav("/employer/login");
   };
   const getMe = async () => {
-    const res = await authApi.getMe(2);
-    dispatch(employerAuthActions.setUser(res));
+    try {
+      const res = await authApi.getMe(2);
+      dispatch(employerAuthActions.setUser(res));
+    } catch (e) {
+      dispatch(employerAuthActions.logout());
+      localStorage.removeItem("employer_jwt");
+      nav("/employer/login");
+    }
   };
   const handleChangePage = (url) => {
     nav(url);
     setCurrentPage(url);
   };
+
+  useEffect(() => {
+    setCurrentPage(location.pathname);
+  }, [location.pathname, setCurrentPage]);
 
   useEffect(() => {
     if (!localStorage.getItem("employer_jwt")) {

@@ -1,6 +1,6 @@
 import "./style.css";
 import clsx from "clsx";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Dropdown from "react-bootstrap/Dropdown";
 import { MdCheckBoxOutlineBlank, MdCheckBox } from "react-icons/md";
 

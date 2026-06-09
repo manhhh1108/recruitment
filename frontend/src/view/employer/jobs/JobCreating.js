@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { AiOutlineLine } from "react-icons/ai";
 import jobApi from "../../../api/job";
+import { toast } from "react-toastify";
 
 function JobCreating({ jtypes, jlevels, industries, locations }) {
   const {
@@ -16,7 +17,7 @@ function JobCreating({ jtypes, jlevels, industries, locations }) {
       .map((item) => item.trim())
       .filter(Boolean);
     if (job_inf.industries.length === 0) {
-      alert("Vui lòng nhập ngành nghề");
+      toast.error("Vui lòng nhập ngành nghề");
       return;
     }
     for (let j = 0; j < job_inf.locations.length; j++) {
@@ -29,7 +30,7 @@ function JobCreating({ jtypes, jlevels, industries, locations }) {
     console.log(job_inf);
 
     await jobApi.create(job_inf);
-    alert("Tạo mới thành công!");
+    toast.success("Tạo mới thành công!");
     window.location.reload();
   };
 

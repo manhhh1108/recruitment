@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { AiFillWarning } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import authApi from "../../../api/auth";
 
 function Signup() {
@@ -29,12 +30,12 @@ function Signup() {
     console.log(use_inf);
     try {
       await authApi.register(use_inf);
-      alert('Đăng ký thành công!\nNhấn "OK" để quay về trang chủ');
+      toast.success("Đăng ký thành công!");
       if (window.location.pathname === "/sign-up") {
         navigate("/");
       }
     } catch (error) {
-      alert("Email đã tồn tại trong hệ thống!");
+      toast.error("Email đã tồn tại trong hệ thống!");
     }
   };
 

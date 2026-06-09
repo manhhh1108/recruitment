@@ -26,20 +26,20 @@ function Login() {
   const onSubmit = async (inf) => {
     inf.role = 2;
     setIsLoading(true);
-    await authApi
-      .login(inf)
-      .then((res) => {
-        localStorage.setItem("employer_jwt", res.authorization.token);
-        toast.success("Đăng nhập thành công!");    
-      })
-      .catch(() => {
-        setMsg("Email hoặc mật khẩu không chính xác!");
-      });
-    setIsLoading(false);
-    await authApi.getMe(2).then((res) => {
+    setMsg("");
+    try {
+      const loginRes = await authApi.login(inf);
+      localStorage.setItem("employer_jwt", loginRes.authorization.token);
+      const res = await authApi.getMe(2);
       dispatch(employerAuthActions.setUser(res));
+      toast.success("Đăng nhập thành công!");
       nav("/employer");
-    });
+    } catch (e) {
+      localStorage.removeItem("employer_jwt");
+      setMsg("Email hoặc mật khẩu không chính xác!");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {

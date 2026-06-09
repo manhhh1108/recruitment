@@ -1,5 +1,5 @@
 import "./layout.css";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 // import { AiTwotoneAppstore } from "react-icons/ai";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
@@ -19,6 +19,7 @@ export const CandidateContext = createContext();
 
 function CandidateLayout(props) {
   const nav = useNavigate();
+  const location = useLocation();
   const { currentPage, setCurrentPage } = useContext(AppContext);
   const isAuth = useSelector((state) => state.candAuth.isAuth);
   
@@ -70,7 +71,13 @@ function CandidateLayout(props) {
     setOthers(res);
   };
   useEffect(() => {
-    if (isAuth) {
+    setCurrentPage(location.pathname);
+  }, [location.pathname, setCurrentPage]);
+
+  useEffect(() => {
+    if (!localStorage.getItem("candidate_jwt")) {
+      nav("/");
+    } else if (isAuth) {
       getPersonal();
       getEducations();
       getExperiences();
@@ -81,7 +88,7 @@ function CandidateLayout(props) {
       getActivities();
       getOthers();
     }
-  }, [isAuth]);
+  }, [isAuth, nav]);
   const handleChangePage = (url) => {
     nav(url);
     setCurrentPage(url);

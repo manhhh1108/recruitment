@@ -31,7 +31,11 @@ function Layout(props) {
   const isAuth = useSelector((state) => state.candAuth.isAuth);
 
   const handleLogout = async () => {
-    await authApi.logout(1);
+    try {
+      await authApi.logout(1);
+    } catch (e) {
+      // Token may already be expired; client state still needs to be cleared.
+    }
     dispatch(candAuthActions.logout());
     localStorage.removeItem("candidate_jwt");
     nav("/");
@@ -58,6 +62,12 @@ function Layout(props) {
     }
     // nav(`/jobs/${inf.job_id}`);
   };
+  const handleToggleReadMsg = async (e, inf) => {
+    e.stopPropagation();
+    if (inf.isRead === 0) await candMsgApi.markAsRead(inf.id);
+    else await candMsgApi.markAsUnread(inf.id);
+    getAllMessages();
+  };
   useEffect(() => {
     let msg_styles = [];
     for (let i = 0; i < bellMsgs.length; i++) {
@@ -76,8 +86,14 @@ function Layout(props) {
   }, [bellMsgs]);
 
   const getMe = async () => {
-    const res = await authApi.getMe(1);
-    dispatch(candAuthActions.setCurrentCandidate(res));
+    try {
+      const res = await authApi.getMe(1);
+      dispatch(candAuthActions.setCurrentCandidate(res));
+    } catch (e) {
+      dispatch(candAuthActions.logout());
+      localStorage.removeItem("candidate_jwt");
+      nav("/");
+    }
   };
   useEffect(() => {
     if (localStorage.getItem("candidate_jwt")) {
@@ -192,11 +208,16 @@ function Layout(props) {
                         key={"bell_msg" + index}
                         style={{ cursor: "pointer" }}
                         onClick={() => handleReadMsg(item)}
-                        className={
-                          "text-wrap px-2 py-1 hover-bg-1" + msgStyles[index]
-                        }
+                        className={"text-wrap px-2 py-1 hover-bg-1" + msgStyles[index]}
                       >
-                        {item.name}
+                        <div>{item.name}</div>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-link p-0 text-decoration-none"
+                          onClick={(e) => handleToggleReadMsg(e, item)}
+                        >
+                          {item.isRead === 0 ? "Đánh dấu đã đọc" : "Đánh dấu chưa đọc"}
+                        </button>
                       </div>
                     ))
                   ) : (

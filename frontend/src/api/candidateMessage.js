@@ -8,6 +8,9 @@ const candMsgApi = {
   markAsRead: (msgId) => {
     return candidateAxios.get(`${prefix}/${msgId}/updateReadMsg`);
   },
+  markAsUnread: (msgId) => {
+    return candidateAxios.get(`${prefix}/${msgId}/updateUnreadMsg`);
+  },
 };
 
 export default candMsgApi;

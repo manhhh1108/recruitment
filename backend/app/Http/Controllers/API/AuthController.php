@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Models\User;
-use App\Models\Candidate;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\Employer;
+use App\Models\Candidate;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+
 //use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
@@ -28,9 +28,17 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
         $token = Auth::attempt($credentials);
 
+        if (! $token) {
+            return response()->json([
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
         $user = Auth::user();
 
-        if (!$token || $user->role !== $request->role || !$user->is_active) { //check token, role và trạng thái của user
+        if ((int) $user->role !== (int) $request->role || ! $user->is_active) {
+            Auth::logout();
+
             return response()->json([
                 'message' => 'Unauthorized',
             ], 401);
@@ -50,7 +58,7 @@ class AuthController extends Controller
             'authorization' => [
                 'token' => $token,
                 'type' => 'bearer',
-            ]
+            ],
         ]);
     }
 
@@ -67,7 +75,7 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 1,
-            'is_active' => 1
+            'is_active' => 1,
         ]);
 
         $user = User::orderBy('id', 'desc')->first();
@@ -76,7 +84,7 @@ class AuthController extends Controller
             'user_id' => $user->id,
             'firstname' => $request->firstname,
             'lastname' => $request->lastname,
-            'email' => $request->email
+            'email' => $request->email,
         ]);
 
         // $credentials = $request->only('email', 'password');
@@ -111,7 +119,7 @@ class AuthController extends Controller
                 ->first();
             $user['name'] = $name;
         }
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], 401);
@@ -123,6 +131,7 @@ class AuthController extends Controller
     public function logout()
     {
         Auth::logout();
+
         return response()->json([
             'message' => 'Successfully logged out',
         ]);
@@ -135,7 +144,7 @@ class AuthController extends Controller
             'authorization' => [
                 'token' => Auth::refresh(),
                 'type' => 'bearer',
-            ]
+            ],
         ]);
     }
 }

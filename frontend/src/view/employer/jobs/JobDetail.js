@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { AiOutlineLine } from "react-icons/ai";
 import jobApi from "../../../api/job";
+import { toast } from "react-toastify";
 
 function JobDetail({ inf, jtypes, jlevels, industries, locations }) {
   const jobIndustries = inf.industries;
@@ -44,7 +45,7 @@ function JobDetail({ inf, jtypes, jlevels, industries, locations }) {
     }
     console.log(job_inf);
     await jobApi.update(inf.id, job_inf);
-    alert("Cập nhật thành công!");
+    toast.success("Cập nhật thành công!");
     window.location.reload();
   };
 

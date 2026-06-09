@@ -22,6 +22,9 @@ const jobApi = {
   update: (id, data) => {
     return employerAxios.post(`${prefix}/${id}/update`, data);
   },
+  duplicate: (id) => {
+    return employerAxios.post(`${prefix}/${id}/duplicate`);
+  },
   getJobIndustries: (id) => {
     return commonAxios.get(`${prefix}/${id}/getJobIndustries`);
   },

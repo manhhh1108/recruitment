@@ -31,5 +31,6 @@ class DatabaseSeeder extends Seeder
         $this->call([PrizeSeeder::class]);
         $this->call([ActivitySeeder::class]);
         // $this->call([OtherSeeder::class]);
+        $this->call([DemoDatabaseSeeder::class]);
     }
 }

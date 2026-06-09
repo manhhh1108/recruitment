@@ -37,6 +37,12 @@ class AdminController extends Controller
                 ->orderBy('month')
                 ->take(12)
                 ->get(),
+            'applications_by_status' => DB::table('job_applying')
+                ->selectRaw('status, COUNT(*) as total')
+                ->where('status', '!=', 'cancelled')
+                ->groupBy('status')
+                ->orderByDesc('total')
+                ->get(),
         ]);
     }
 
@@ -46,6 +52,7 @@ class AdminController extends Controller
 
         $users = User::query()
             ->when($request->filled('role'), fn ($query) => $query->where('role', $request->role))
+            ->when($request->filled('is_active'), fn ($query) => $query->where('is_active', $request->is_active))
             ->when($request->filled('keyword'), function ($query) use ($request) {
                 return $query->whereRaw('LOWER(email) LIKE ?', ['%' . strtolower($request->keyword) . '%']);
             })
@@ -60,6 +67,10 @@ class AdminController extends Controller
     {
         $this->authorizeAdmin();
 
+        if ((int) $id === (int) Auth::id() && ! (bool) $request->is_active) {
+            return response()->json(['message' => 'Admin cannot lock current account'], 422);
+        }
+
         User::where('id', $id)->update(['is_active' => (int) $request->is_active]);
 
         return response()->json('Updated successfully');
@@ -73,6 +84,7 @@ class AdminController extends Controller
             ->when($request->filled('keyword'), function ($query) use ($request) {
                 return $query->whereRaw('LOWER(jname) LIKE ?', ['%' . strtolower($request->keyword) . '%']);
             })
+            ->when($request->filled('is_active'), fn ($query) => $query->where('is_active', $request->is_active))
             ->select('jobs.*')
             ->orderByDesc('jobs.created_at')
             ->paginate(10);
@@ -114,6 +126,15 @@ class AdminController extends Controller
         $this->categoryModel($type)::where('id', $id)->update(['name' => $request->name]);
 
         return response()->json('Updated successfully');
+    }
+
+    public function destroyCategory($type, $id)
+    {
+        $this->authorizeAdmin();
+
+        $this->categoryModel($type)::where('id', $id)->delete();
+
+        return response()->json('Deleted successfully');
     }
 
     private function categoryModel($type)

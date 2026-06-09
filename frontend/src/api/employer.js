@@ -27,12 +27,17 @@ const employerApi = {
   getComJobs: (id) => {
     return commonAxios.get(`${prefix}/${id}/getComJobs`);
   },
-  getJobList: (id, keyword) => {
-    return commonAxios.get(`${prefix}/${id}/getJobList?keyword=${keyword}`);
+  getJobList: (id, keyword = "") => {
+    return commonAxios.get(`${prefix}/${id}/getJobList?keyword=${keyword || ""}`);
   },
-  getCandidateList: (keyword, status, jobId = "") => {
-    let url = `${prefix}/getCandidateList?keyword=${keyword || ""}&status=${status || ""}&job_id=${jobId || ""}`;
+  getCandidateList: (keyword, status, jobId = "", page = 1, perPage = 10) => {
+    let url = `${prefix}/getCandidateList?keyword=${keyword || ""}&status=${status || ""}&job_id=${jobId || ""}&page=${page}&per_page=${perPage}`;
     return employerAxios.get(url);
+  },
+  getCandidateDetail: (jobId, candidateId) => {
+    return employerAxios.get(
+      `${prefix}/candidateDetail?job_id=${jobId}&candidate_id=${candidateId}`
+    );
   },
   processApplying: (data) => {
     return employerAxios.post(`${prefix}/processApplying`, data);

@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Candidate;
 use App\Models\Industry;
-use App\Models\Resume;
-use Illuminate\Http\Request;
 use App\Models\Job;
-use App\Models\User;
+use App\Models\Resume;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -21,7 +19,7 @@ class JobController extends Controller
             ->when($req->filled('keyword'), function ($query) use ($req) {
                 return $query->join('employers', 'employer_id', '=', 'employers.id')
                     ->where(function ($query2) use ($req) {
-                        $keyword = '%' . strtolower($req->keyword) . '%';
+                        $keyword = '%'.strtolower($req->keyword).'%';
                         $query2->whereRaw('LOWER(jobs.jname) LIKE ?', [$keyword])
                             ->orWhereRaw('LOWER(employers.name) LIKE ?', [$keyword]);
                     });
@@ -50,12 +48,12 @@ class JobController extends Controller
                 $workMode = strtolower($req->work_mode);
 
                 return $query->join('jtypes as work_mode_jtypes', 'jobs.jtype_id', '=', 'work_mode_jtypes.id')
-                    ->whereRaw('LOWER(work_mode_jtypes.name) LIKE ?', ['%' . $workMode . '%']);
+                    ->whereRaw('LOWER(work_mode_jtypes.name) LIKE ?', ['%'.$workMode.'%']);
             });
 
         if ($req->sort_by === 'salary_high') {
             $jobs->orderByDesc(DB::raw('COALESCE(jobs.max_salary, jobs.min_salary, 0)'));
-        } else if ($req->sort_by === 'deadline') {
+        } elseif ($req->sort_by === 'deadline') {
             $jobs->orderBy('jobs.expire_at');
         } else {
             $jobs->orderByDesc('jobs.created_at');
@@ -67,13 +65,14 @@ class JobController extends Controller
 
         return response()->json($jobs);
     }
+
     public function show($id)
     {
         $job = Job::with(['employer', 'jtype', 'jlevel', 'industries', 'locations'])
             ->where('id', $id)
             ->select('jobs.*', DB::raw('DATE_FORMAT(created_at, "%d/%m/%Y") as postDate'))
             ->first();
-        if (!$job) {
+        if (! $job) {
             return response()->json('resource not found');
         }
         $this->addLocationInf($job);
@@ -82,6 +81,7 @@ class JobController extends Controller
 
         return response()->json($job);
     }
+
     public function getHotList()
     {
         $res = Job::with(['employer', 'locations'])
@@ -91,8 +91,10 @@ class JobController extends Controller
 
         return response()->json($res);
     }
+
     public function create(Request $req)
     {
+        $this->authorizeRole(2);
         $new_record = $req->all();
 
         $industries = $this->resolveIndustryIds($new_record['industries']);
@@ -111,25 +113,34 @@ class JobController extends Controller
             DB::table('job_industry')->insert($job_industries);
         }
 
+        $job_locations = [];
         for ($i = 0; $i < count($locations); $i++) {
             $job_locations[$i] = collect(['job_id' => $job->id, 'location_id' => $locations[$i]])->toArray();
         }
-        DB::table('job_location')->insert($job_locations);
+        if (count($job_locations) > 0) {
+            DB::table('job_location')->insert($job_locations);
+        }
 
         return response()->json('Updated successfully');
     }
-    public function update(Request $req)
+
+    public function update(Request $req, $id)
     {
+        $this->authorizeRole(2);
+        $job = Job::where('id', $id)
+            ->where('employer_id', Auth::id())
+            ->firstOrFail();
         $update_fields = $req->all();
+        unset($update_fields['id'], $update_fields['employer_id']);
         if (isset($update_fields['industries'])) {
             $industries = $this->resolveIndustryIds($update_fields['industries']);
             unset($update_fields['industries']);
 
             //update job_industry
-            DB::table('job_industry')->where('job_id', $req->id)->delete();
+            DB::table('job_industry')->where('job_id', $job->id)->delete();
             $job_industries = [];
             for ($i = 0; $i < count($industries); $i++) {
-                $job_industries[$i] = collect(['job_id' => $req->id, 'industry_id' => $industries[$i]])->toArray();
+                $job_industries[$i] = collect(['job_id' => $job->id, 'industry_id' => $industries[$i]])->toArray();
             }
             if (count($job_industries) > 0) {
                 DB::table('job_industry')->insert($job_industries);
@@ -140,20 +151,46 @@ class JobController extends Controller
             unset($update_fields['locations']);
 
             //update job_location
-            DB::table('job_location')->where('job_id', $req->id)->delete();
+            DB::table('job_location')->where('job_id', $job->id)->delete();
+            $job_locations = [];
             for ($i = 0; $i < count($locations); $i++) {
-                $job_locations[$i] = collect(['job_id' => $req->id, 'location_id' => $locations[$i]])->toArray();
+                $job_locations[$i] = collect(['job_id' => $job->id, 'location_id' => $locations[$i]])->toArray();
             }
-            DB::table('job_location')->insert($job_locations);
+            if (count($job_locations) > 0) {
+                DB::table('job_location')->insert($job_locations);
+            }
         }
         if (count($update_fields) > 0) {
-            Job::where('id', $req->id)
-                ->update($update_fields);
+            $job->update($update_fields);
         }
         $msg = 'Update successfully';
 
         return response()->json($msg);
     }
+
+    public function duplicate($id)
+    {
+        $this->authorizeRole(2);
+
+        $job = Job::with(['industries', 'locations'])
+            ->where('id', $id)
+            ->where('employer_id', Auth::id())
+            ->firstOrFail();
+
+        $newJob = $job->replicate();
+        $newJob->jname = $job->jname.' (Copy)';
+        $newJob->is_active = 0;
+        $newJob->is_hot = 0;
+        $newJob->created_at = Carbon::now();
+        $newJob->updated_at = Carbon::now();
+        $newJob->save();
+
+        $newJob->industries()->sync($job->industries->pluck('id')->all());
+        $newJob->locations()->sync($job->locations->pluck('id')->all());
+
+        return response()->json($newJob, 201);
+    }
+
     public function getJobIndustries($id)
     {
         $res = Job::find($id)->industries;
@@ -195,11 +232,13 @@ class JobController extends Controller
         // $job['expire_at'] = Carbon::parse($job['expire_at'])->format('d/m/Y');
         // $job['updated_at'] = Carbon::parse($job['updated_at'])->toDateTimeString();
     }
+
     public function apply(Request $req)
     {
+        $this->authorizeRole(1);
         $user = Auth::user();
         $job = Job::findOrFail($req->id);
-        if (Carbon::parse($job->expire_at)->endOfDay()->isPast()) {
+        if (! $job->is_active || Carbon::parse($job->expire_at)->endOfDay()->isPast()) {
             return response()->json(['message' => 'Job expired'], 422);
         }
 
@@ -208,13 +247,13 @@ class JobController extends Controller
                 ->where('candidate_id', $user->id)
                 ->firstOrFail();
             $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/');
-            $path = $resume->cv_link ?: $frontendUrl . '/candidate/resumes/' . $resume->id;
+            $path = $resume->cv_link ?: $frontendUrl.'/candidate/resumes/'.$resume->id;
             $cvType = 'system';
             $resumeId = $resume->id;
         } else {
             $req->validate(['cv' => 'required|file']);
-            $fname = 'cand' . $user->id . '_' . $req->fname;
-            $path =  env('APP_URL') . '/storage/' . $req->file('cv')->storeAs(
+            $fname = 'cand'.$user->id.'_'.$req->fname;
+            $path = env('APP_URL').'/storage/'.$req->file('cv')->storeAs(
                 'cv_images',
                 $fname,
                 'public'
@@ -239,7 +278,7 @@ class JobController extends Controller
             'cv_type' => $cvType,
             'resume_id' => $resumeId,
             'status' => 'pending',
-            'updated_at' => Carbon::now()
+            'updated_at' => Carbon::now(),
         ];
 
         if ($existingApplication) {
@@ -256,35 +295,40 @@ class JobController extends Controller
 
         return response()->json($path);
     }
+
     public function checkApplying($job_id)
     {
+        $this->authorizeRole(1);
         $user = Auth::user();
         $res = DB::table('job_applying')
             ->where([
                 ['job_id', '=', $job_id],
-                ['candidate_id', '=', $user->id]
+                ['candidate_id', '=', $user->id],
             ])->first();
 
         if ($res != null && $res->status !== 'cancelled') {
             return response()->json(['value' => true, 'status' => $res->status]);
-        } else return response()->json(['value' => false]);
+        } else {
+            return response()->json(['value' => false]);
+        }
     }
 
     public function cancelApplying($job_id)
     {
+        $this->authorizeRole(1);
         $user = Auth::user();
         $deleted = DB::table('job_applying')
             ->where([
                 ['job_id', '=', $job_id],
                 ['candidate_id', '=', $user->id],
-                ['status', '=', 'pending']
+                ['status', '=', 'pending'],
             ])
             ->update([
                 'status' => 'cancelled',
                 'updated_at' => Carbon::now(),
             ]);
 
-        if (!$deleted) {
+        if (! $deleted) {
             return response()->json(['message' => 'Application cannot be canceled'], 422);
         }
 
@@ -308,5 +352,10 @@ class JobController extends Controller
             ->orderByDesc('jobs.created_at')
             ->take(4)
             ->get();
+    }
+
+    private function authorizeRole(int $role): void
+    {
+        abort_unless((int) Auth::user()?->role === $role, 403);
     }
 }
