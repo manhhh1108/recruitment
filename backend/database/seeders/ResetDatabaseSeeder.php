@@ -45,6 +45,7 @@ class ResetDatabaseSeeder extends Seeder
             ActivitySeeder::class,
             OtherSeeder::class,
             DemoDatabaseSeeder::class,
+            PresentationDemoSeeder::class,
         ]);
     }
 

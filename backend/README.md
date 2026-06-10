@@ -32,6 +32,30 @@ DB_PASSWORD=
 
 ## Database
 
+Có thể khởi tạo database bằng **một trong hai cách** dưới đây.
+
+### Cách 1: Import file SQL (khuyên dùng khi demo)
+
+File `recruitment_demo_full.sql` đã bao gồm cấu trúc bảng và toàn bộ dữ liệu
+demo: công ty, việc làm, ứng viên, CV, đơn ứng tuyển và tài khoản kiểm thử.
+
+Với XAMPP trên Windows:
+
+```powershell
+C:\xampp\mysql\bin\mysql.exe -u root < recruitment_demo_full.sql
+```
+
+Hoặc khi lệnh `mysql` đã có trong `PATH`:
+
+```bash
+mysql -u root < recruitment_demo_full.sql
+```
+
+File SQL tự tạo database `recruitment` và có lệnh thay thế các bảng hiện tại.
+Không import vào database đang chứa dữ liệu cần giữ lại.
+
+### Cách 2: Laravel migration và seeder
+
 Tạo database `recruitment`, sau đó chạy:
 
 ```bash
@@ -39,16 +63,48 @@ php artisan migrate
 php artisan db:seed
 ```
 
-Để xóa dữ liệu trong các bảng của ứng dụng và seed lại từ đầu:
+Để chỉ bổ sung dữ liệu phục vụ trình bày:
+
+```bash
+php artisan db:seed --class=PresentationDemoSeeder
+```
+
+Để xóa dữ liệu ứng dụng và seed lại toàn bộ từ đầu:
 
 ```bash
 php artisan db:seed --class=ResetDatabaseSeeder
 ```
 
-Nếu cần dữ liệu mẫu đầy đủ từ file SQL có sẵn ở root project:
+Chỉ cần chọn import SQL hoặc chạy migration/seeder. Không cần thực hiện cả hai
+cách trên cùng một database.
 
-```bash
-mysql -u root recruitment < ..\recruitment.sql
+## Tài khoản kiểm thử
+
+### Ứng viên
+
+```text
+Email: taianh.bui@example.com
+Mật khẩu: TaiAnh@17112003
+Vai trò đăng nhập: Ứng viên
+```
+
+Tài khoản có hồ sơ Bùi Đức Tài Anh, ngày sinh `17/11/2003`, hai CV, danh
+sách việc đã lưu và các đơn ứng tuyển ở nhiều trạng thái.
+
+### Nhà tuyển dụng
+
+```text
+Email: novatech@company.demo
+Mật khẩu: Company@123
+Vai trò đăng nhập: Nhà tuyển dụng
+```
+
+### Quản trị viên
+
+```text
+Email: admin.demo@example.com
+Mật khẩu: password
+Vai trò đăng nhập: Quản trị viên
 ```
 
 ## Chạy server
