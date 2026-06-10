@@ -2,6 +2,7 @@ import adminAxios from "./adminAxios";
 
 const adminApi = {
   getDashboard: () => adminAxios.get("/admin/dashboard"),
+  getAuditLogs: (page = 1) => adminAxios.get(`/admin/audit-logs?page=${page}`),
   getUsers: (params = {}) =>
     adminAxios.get(
       `/admin/users?keyword=${params.keyword || ""}&role=${params.role || ""}&is_active=${params.is_active ?? ""}&page=${params.page || 1}`

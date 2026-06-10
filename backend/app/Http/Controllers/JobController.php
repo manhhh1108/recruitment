@@ -33,13 +33,28 @@ class JobController extends Controller
                     ->whereIn('location_id', $req->location_id);
             })
             ->when($req->filled('salary'), function ($query) use ($req) {
-                return $query->where('min_salary', '>=', $req->salary);
+                return $query->where('min_salary', '>=', $this->normalizeSalary($req->salary));
+            })
+            ->when($req->filled('salary_min'), function ($query) use ($req) {
+                return $query->where('max_salary', '>=', $this->normalizeSalary($req->salary_min));
+            })
+            ->when($req->filled('salary_max'), function ($query) use ($req) {
+                return $query->where('min_salary', '<=', $this->normalizeSalary($req->salary_max));
             })
             ->when($req->filled('jtype_id'), function ($query) use ($req) {
                 return $query->where('jtype_id', '=', $req->jtype_id);
             })
             ->when($req->filled('jlevel_id'), function ($query) use ($req) {
                 return $query->where('jlevel_id', '=', $req->jlevel_id);
+            })
+            ->when($req->filled('experience_min'), function ($query) use ($req) {
+                return $query->where('yoe', '>=', (int) $req->experience_min);
+            })
+            ->when($req->filled('experience_max'), function ($query) use ($req) {
+                return $query->where('yoe', '<=', (int) $req->experience_max);
+            })
+            ->when($req->boolean('available_only'), function ($query) {
+                return $query->where('jobs.expire_at', '>=', Carbon::today());
             })
             ->when($req->filled('posting_period'), function ($query) use ($req) {
                 return $query->where('jobs.created_at', '>=', Carbon::now()->subDays((int) $req->posting_period));
@@ -48,7 +63,12 @@ class JobController extends Controller
                 $workMode = strtolower($req->work_mode);
 
                 return $query->join('jtypes as work_mode_jtypes', 'jobs.jtype_id', '=', 'work_mode_jtypes.id')
-                    ->whereRaw('LOWER(work_mode_jtypes.name) LIKE ?', ['%'.$workMode.'%']);
+                    ->when($workMode === 'on-site', function ($query) {
+                        return $query->whereRaw('LOWER(work_mode_jtypes.name) NOT LIKE ?', ['%remote%'])
+                            ->whereRaw('LOWER(work_mode_jtypes.name) NOT LIKE ?', ['%hybrid%']);
+                    }, function ($query) use ($workMode) {
+                        return $query->whereRaw('LOWER(work_mode_jtypes.name) LIKE ?', ['%'.$workMode.'%']);
+                    });
             });
 
         if ($req->sort_by === 'salary_high') {
@@ -357,5 +377,12 @@ class JobController extends Controller
     private function authorizeRole(int $role): void
     {
         abort_unless((int) Auth::user()?->role === $role, 403);
+    }
+
+    private function normalizeSalary($salary): int
+    {
+        $salary = (int) $salary;
+
+        return $salary > 0 && $salary < 1000 ? $salary * 1000000 : $salary;
     }
 }

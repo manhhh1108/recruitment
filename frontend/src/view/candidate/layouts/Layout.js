@@ -21,6 +21,7 @@ function Layout(props) {
   const [bellMsgs, setBellMsgs] = useState([]);
   const [msgStyles, setMsgStyles] = useState([]);
   const [hasNew, setHasNew] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showBellDialog, setShowBellDialog] = useState(false);
   const [showListMsg, setShowListMsg] = useState(false);
   const [curNotification, setCurNotification] = useState({});
@@ -45,6 +46,7 @@ function Layout(props) {
     const res = await candMsgApi.getMsgs(candidate.id);
     console.log("bell msgs:", res);
     setBellMsgs(res);
+    setUnreadCount(res.filter((item) => item.isRead === 0).length);
   };
   const handleReadMsg = async (inf) => {
     setShowBellDialog(true);
@@ -59,6 +61,7 @@ function Layout(props) {
         }
       }
       setBellMsgs(temp);
+      setUnreadCount(temp.filter((item) => item.isRead === 0).length);
     }
     // nav(`/jobs/${inf.job_id}`);
   };
@@ -67,6 +70,14 @@ function Layout(props) {
     if (inf.isRead === 0) await candMsgApi.markAsRead(inf.id);
     else await candMsgApi.markAsUnread(inf.id);
     getAllMessages();
+  };
+  const handleMarkAllRead = async (e) => {
+    e.stopPropagation();
+    await candMsgApi.markAllAsRead();
+    const temp = bellMsgs.map((item) => ({ ...item, isRead: 1 }));
+    setBellMsgs(temp);
+    setUnreadCount(0);
+    setHasNew(false);
   };
   useEffect(() => {
     let msg_styles = [];
@@ -196,6 +207,11 @@ function Layout(props) {
                     <BsFillCircleFill />
                   </div>
                 )}
+                {unreadCount > 0 && (
+                  <span className="position-absolute badge rounded-pill bg-danger" style={{ top: "-8px", right: "12px", fontSize: "10px" }}>
+                    {unreadCount}
+                  </span>
+                )}
                 <div
                   className={clsx(
                     "position-absolute bg-white rounded z-index-1 msg-list fw-normal shadow",
@@ -203,23 +219,36 @@ function Layout(props) {
                   )}
                 >
                   {bellMsgs.length > 0 ? (
-                    bellMsgs.map((item, index) => (
-                      <div
-                        key={"bell_msg" + index}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => handleReadMsg(item)}
-                        className={"text-wrap px-2 py-1 hover-bg-1" + msgStyles[index]}
-                      >
-                        <div>{item.name}</div>
+                    <>
+                      <div className="d-flex justify-content-between align-items-center px-2 py-1 border-bottom">
+                        <span className="fw-600 text-main">Thông báo</span>
                         <button
                           type="button"
                           className="btn btn-sm btn-link p-0 text-decoration-none"
-                          onClick={(e) => handleToggleReadMsg(e, item)}
+                          onClick={handleMarkAllRead}
+                          disabled={unreadCount === 0}
                         >
-                          {item.isRead === 0 ? "Đánh dấu đã đọc" : "Đánh dấu chưa đọc"}
+                          Đọc tất cả
                         </button>
                       </div>
-                    ))
+                      {bellMsgs.map((item, index) => (
+                        <div
+                          key={"bell_msg" + index}
+                          style={{ cursor: "pointer" }}
+                          onClick={() => handleReadMsg(item)}
+                          className={"text-wrap px-2 py-1 hover-bg-1" + msgStyles[index]}
+                        >
+                          <div>{item.name}</div>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-link p-0 text-decoration-none"
+                            onClick={(e) => handleToggleReadMsg(e, item)}
+                          >
+                            {item.isRead === 0 ? "Đánh dấu đã đọc" : "Đánh dấu chưa đọc"}
+                          </button>
+                        </div>
+                      ))}
+                    </>
                   ) : (
                     <span className="ms-3">Không có thông báo nào</span>
                   )}

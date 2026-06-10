@@ -248,15 +248,20 @@ class EmployerController extends Controller
 
         $msgName = $msgName.$req->jname.', '.$company.', lúc '.$currentTime;
         //update:
+        $applicationUpdate = array_filter([
+            'status' => $nextStatus,
+            'internal_note' => $req->internal_note,
+            'interview_at' => $req->interview_at,
+            'source' => $req->source,
+            'updated_at' => Carbon::now(),
+        ], fn ($value) => $value !== null);
+
         DB::table('job_applying')
             ->where([
                 ['job_id', '=', $req->job_id],
                 ['candidate_id', '=', $req->candidate_id],
             ])
-            ->update([
-                'status' => $nextStatus,
-                'updated_at' => Carbon::now(),
-            ]);
+            ->update($applicationUpdate);
         if ($req->actType != 'VIEWED' || $req->status) {
             CandidateMessage::create(
                 [
@@ -326,6 +331,48 @@ class EmployerController extends Controller
             ->orderByDesc('total')
             ->get();
 
+        $applicationsByJob = DB::table('jobs')
+            ->leftJoin('job_applying', function ($join) {
+                $join->on('jobs.id', '=', 'job_applying.job_id')
+                    ->where('job_applying.status', '!=', 'cancelled');
+            })
+            ->where('jobs.employer_id', $employerId)
+            ->selectRaw('jobs.id, jobs.jname, COUNT(job_applying.candidate_id) as total')
+            ->groupBy('jobs.id', 'jobs.jname')
+            ->orderByDesc('total')
+            ->take(8)
+            ->get();
+
+        $expiringJobs = Job::where('employer_id', $employerId)
+            ->where('is_active', 1)
+            ->whereBetween('expire_at', [Carbon::today(), Carbon::today()->addDays(14)])
+            ->select('id', 'jname', 'expire_at')
+            ->orderBy('expire_at')
+            ->take(8)
+            ->get()
+            ->map(function ($job) {
+                $job->days_left = Carbon::today()->diffInDays(Carbon::parse($job->expire_at), false);
+
+                return $job;
+            });
+
+        $statusTotal = max((int) $applicationsByStatus->sum('total'), 1);
+        $statusConversion = $applicationsByStatus->map(function ($item) use ($statusTotal) {
+            return [
+                'status' => $item->status,
+                'total' => (int) $item->total,
+                'percent' => round(((int) $item->total / $statusTotal) * 100, 1),
+            ];
+        });
+
+        $applicationsBySource = DB::table('job_applying')
+            ->whereIn('job_id', $jobIds)
+            ->where('status', '!=', 'cancelled')
+            ->selectRaw('COALESCE(source, "Website") as source, COUNT(*) as total')
+            ->groupBy('source')
+            ->orderByDesc('total')
+            ->get();
+
         return response()->json([
             'total_jobs' => $totalJobs,
             'active_jobs' => $activeJobs,
@@ -336,6 +383,10 @@ class EmployerController extends Controller
             'recent_applications' => $recentApplications,
             'applications_by_month' => $applicationsByMonth,
             'applications_by_status' => $applicationsByStatus,
+            'applications_by_job' => $applicationsByJob,
+            'expiring_jobs' => $expiringJobs,
+            'status_conversion' => $statusConversion,
+            'applications_by_source' => $applicationsBySource,
         ]);
     }
 

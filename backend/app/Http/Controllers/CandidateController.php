@@ -118,7 +118,35 @@ class CandidateController extends Controller
             ->join('job_industry', 'job_applying.job_id', '=', 'job_industry.job_id')
             ->where('candidate_id', $candidateId)
             ->pluck('industry_id')
+            ->merge(
+                DB::table('saved_jobs')
+                    ->join('job_industry', 'saved_jobs.job_id', '=', 'job_industry.job_id')
+                    ->where('candidate_id', $candidateId)
+                    ->pluck('industry_id')
+            )
             ->unique()
+            ->values()
+            ->all();
+
+        $locationIds = DB::table('saved_jobs')
+            ->join('job_location', 'saved_jobs.job_id', '=', 'job_location.job_id')
+            ->where('candidate_id', $candidateId)
+            ->pluck('location_id')
+            ->merge(
+                DB::table('job_applying')
+                    ->join('job_location', 'job_applying.job_id', '=', 'job_location.job_id')
+                    ->where('candidate_id', $candidateId)
+                    ->pluck('location_id')
+            )
+            ->unique()
+            ->values()
+            ->all();
+
+        $skillNames = DB::table('skills')
+            ->where('candidate_id', $candidateId)
+            ->pluck('name')
+            ->filter()
+            ->map(fn ($name) => strtolower(trim($name)))
             ->values()
             ->all();
 
@@ -133,6 +161,15 @@ class CandidateController extends Controller
             ->when(count($industryIds) > 0, function ($query) use ($industryIds) {
                 return $query->join('job_industry as dashboard_job_industry', 'jobs.id', '=', 'dashboard_job_industry.job_id')
                     ->whereIn('dashboard_job_industry.industry_id', $industryIds);
+            })
+            ->when(count($industryIds) === 0 && count($locationIds) > 0, function ($query) use ($locationIds) {
+                return $query->join('job_location as dashboard_job_location', 'jobs.id', '=', 'dashboard_job_location.job_id')
+                    ->whereIn('dashboard_job_location.location_id', $locationIds);
+            })
+            ->when(count($industryIds) === 0 && count($locationIds) === 0 && count($skillNames) > 0, function ($query) use ($skillNames) {
+                return $query->join('job_skill as dashboard_job_skill', 'jobs.id', '=', 'dashboard_job_skill.job_id')
+                    ->join('jskills as dashboard_jskills', 'dashboard_job_skill.skill_id', '=', 'dashboard_jskills.id')
+                    ->whereIn(DB::raw('LOWER(dashboard_jskills.name)'), $skillNames);
             })
             ->select('jobs.*')
             ->distinct()

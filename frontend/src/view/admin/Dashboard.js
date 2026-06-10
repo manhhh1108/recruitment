@@ -57,6 +57,7 @@ function AdminDashboard() {
   const [jobFilters, setJobFilters] = useState({ keyword: "", is_active: "", page: 1 });
   const [categoryType, setCategoryType] = useState("industries");
   const [categories, setCategories] = useState([]);
+  const [auditLogs, setAuditLogs] = useState({ data: [], current_page: 1, last_page: 1 });
   const [categoryName, setCategoryName] = useState("");
   const [editingCategory, setEditingCategory] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -67,9 +68,10 @@ function AdminDashboard() {
   const loadUsers = async (params = userFilters) => setUsers(await adminApi.getUsers(params));
   const loadJobs = async (params = jobFilters) => setJobs(await adminApi.getJobs(params));
   const loadCategories = async (type = categoryType) => setCategories(await adminApi.getCategories(type));
+  const loadAuditLogs = async (page = 1) => setAuditLogs(await adminApi.getAuditLogs(page));
 
   useEffect(() => {
-    Promise.all([loadDashboard(), loadUsers(), loadJobs(), loadCategories()]).finally(() => setLoading(false));
+    Promise.all([loadDashboard(), loadUsers(), loadJobs(), loadCategories(), loadAuditLogs()]).finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -251,6 +253,29 @@ function AdminDashboard() {
                 <button className="btn btn-sm p-0 text-danger" onClick={() => setConfirm(item)}><BsTrash /></button>
               </span>
             ))}
+          </div>
+
+          <h5 className="text-main mt-4">Audit log</h5>
+          <div className="table-responsive" style={{ width: "93%" }}>
+            <table className="table border shadow-sm">
+              <thead className="table-primary"><tr><th>Admin</th><th>Hành động</th><th>Đối tượng</th><th>Thời gian</th></tr></thead>
+              <tbody className="ts-smd">
+                {auditLogs.data.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.admin_email}</td>
+                    <td>{item.action}</td>
+                    <td>{item.target_type} #{item.target_id}</td>
+                    <td>{item.created_at}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {auditLogs.data.length === 0 && <div className="border bg-mlight p-3 text-center" style={{ width: "93%" }}>Chưa có log thao tác</div>}
+          <div className="d-flex gap-2 mb-4">
+            <button className="btn btn-sm btn-outline-primary" disabled={auditLogs.current_page <= 1} onClick={() => loadAuditLogs(auditLogs.current_page - 1)}>Trước</button>
+            <span className="ts-smd py-1">Trang {auditLogs.current_page}/{auditLogs.last_page}</span>
+            <button className="btn btn-sm btn-outline-primary" disabled={auditLogs.current_page >= auditLogs.last_page} onClick={() => loadAuditLogs(auditLogs.current_page + 1)}>Sau</button>
           </div>
         </>
       )}

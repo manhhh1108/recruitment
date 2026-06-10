@@ -57,10 +57,11 @@ class OtherController extends Controller
         return response()->json("deleted successfully");
     }
 
-    public function update(Request $req)
+    public function update(Request $req, $id = null)
     {
         $update_fields = $req->all();
-        Other::where('id', $req->id)->update($update_fields);
+        unset($update_fields['id']);
+        Other::where('id', $id ?? $req->id)->update($update_fields);
 
         return response()->json("updated successfully");
     }

@@ -37,6 +37,10 @@ function Dashboard() {
     recent_applications: [],
     applications_by_month: [],
     applications_by_status: [],
+    applications_by_job: [],
+    expiring_jobs: [],
+    status_conversion: [],
+    applications_by_source: [],
   });
 
   const getDashboard = async () => {
@@ -91,6 +95,54 @@ function Dashboard() {
         <div className="col-md-6">
           <MiniBars items={data.applications_by_status} labelKey="status" statusText={statusText} />
         </div>
+      </div>
+      <div className="row g-3 mt-2" style={{ width: "93%" }}>
+        <div className="col-md-6">
+          <div className="border p-3 h-100">
+            <div className="fw-600 text-main mb-3">Ứng tuyển theo tin</div>
+            {data.applications_by_job.length === 0 && <div className="text-secondary">Chưa có dữ liệu</div>}
+            {data.applications_by_job.map((item) => (
+              <div className="d-flex justify-content-between border-bottom py-2" key={item.id}>
+                <span className="text-truncate me-2">{item.jname}</span>
+                <span className="fw-600 text-main">{item.total}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="col-md-6">
+          <div className="border p-3 h-100">
+            <div className="fw-600 text-main mb-3">Tin sắp hết hạn</div>
+            {data.expiring_jobs.length === 0 && <div className="text-secondary">Không có tin sắp hết hạn</div>}
+            {data.expiring_jobs.map((item) => (
+              <div className="d-flex justify-content-between border-bottom py-2" key={item.id}>
+                <span className="text-truncate me-2">{item.jname}</span>
+                <span className="badge bg-warning text-dark">Còn {item.days_left} ngày</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="border p-3 mt-3" style={{ width: "93%" }}>
+        <div className="fw-600 text-main mb-3">Tỷ lệ trạng thái ứng tuyển</div>
+        <div className="d-flex flex-wrap gap-2">
+          {data.status_conversion.map((item) => (
+            <span className="border bg-mlight px-3 py-2 ts-smd" key={item.status}>
+              {statusText[item.status] || item.status}: <span className="fw-600">{item.percent}%</span>
+            </span>
+          ))}
+        </div>
+        {data.status_conversion.length === 0 && <div className="text-secondary">Chưa có dữ liệu</div>}
+      </div>
+      <div className="border p-3 mt-3" style={{ width: "93%" }}>
+        <div className="fw-600 text-main mb-3">Nguồn ứng viên</div>
+        <div className="d-flex flex-wrap gap-2">
+          {data.applications_by_source.map((item) => (
+            <span className="border bg-mlight px-3 py-2 ts-smd" key={item.source}>
+              {item.source}: <span className="fw-600">{item.total}</span>
+            </span>
+          ))}
+        </div>
+        {data.applications_by_source.length === 0 && <div className="text-secondary">Chưa có dữ liệu</div>}
       </div>
       <div className="d-flex justify-content-between align-items-center mt-4" style={{ width: "93%" }}>
         <h5 className="text-main mb-0">Ứng viên mới nhất</h5>

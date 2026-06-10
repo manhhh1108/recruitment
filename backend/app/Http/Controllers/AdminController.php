@@ -72,6 +72,7 @@ class AdminController extends Controller
         }
 
         User::where('id', $id)->update(['is_active' => (int) $request->is_active]);
+        $this->writeAudit('toggle_user', 'user', $id, ['is_active' => (int) $request->is_active]);
 
         return response()->json('Updated successfully');
     }
@@ -97,6 +98,7 @@ class AdminController extends Controller
         $this->authorizeAdmin();
 
         Job::where('id', $id)->update(['is_active' => (int) $request->is_active]);
+        $this->writeAudit('toggle_job', 'job', $id, ['is_active' => (int) $request->is_active]);
 
         return response()->json('Updated successfully');
     }
@@ -114,6 +116,7 @@ class AdminController extends Controller
         $request->validate(['name' => 'required|string|max:255']);
 
         $item = $this->categoryModel($type)::create(['name' => $request->name]);
+        $this->writeAudit('create_category', $type, $item->id, ['name' => $request->name]);
 
         return response()->json($item, 201);
     }
@@ -124,6 +127,7 @@ class AdminController extends Controller
         $request->validate(['name' => 'required|string|max:255']);
 
         $this->categoryModel($type)::where('id', $id)->update(['name' => $request->name]);
+        $this->writeAudit('update_category', $type, $id, ['name' => $request->name]);
 
         return response()->json('Updated successfully');
     }
@@ -133,8 +137,22 @@ class AdminController extends Controller
         $this->authorizeAdmin();
 
         $this->categoryModel($type)::where('id', $id)->delete();
+        $this->writeAudit('delete_category', $type, $id);
 
         return response()->json('Deleted successfully');
+    }
+
+    public function auditLogs()
+    {
+        $this->authorizeAdmin();
+
+        return response()->json(
+            DB::table('admin_audit_logs')
+                ->join('users', 'admin_audit_logs.admin_id', '=', 'users.id')
+                ->select('admin_audit_logs.*', 'users.email as admin_email')
+                ->orderByDesc('admin_audit_logs.created_at')
+                ->paginate(10)
+        );
     }
 
     private function categoryModel($type)
@@ -146,5 +164,18 @@ class AdminController extends Controller
             'jlevels' => Jlevel::class,
             default => abort(404, 'Invalid category'),
         };
+    }
+
+    private function writeAudit(string $action, string $targetType, $targetId = null, array $payload = []): void
+    {
+        DB::table('admin_audit_logs')->insert([
+            'admin_id' => Auth::id(),
+            'action' => $action,
+            'target_type' => $targetType,
+            'target_id' => $targetId,
+            'payload' => count($payload) > 0 ? json_encode($payload) : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

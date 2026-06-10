@@ -8,6 +8,7 @@ import { MdLocationOn } from "react-icons/md";
 import { IoIosLink } from "react-icons/io";
 import CPagination from "../../components/CPagination";
 import Spinner from "react-bootstrap/Spinner";
+import { logoFallback, useLogoFallback } from "../../common/imageFallback";
 
 function CompanyList() {
   const nav = useNavigate();
@@ -76,9 +77,10 @@ function CompanyList() {
                 >
                   <div className="d-flex align-items-center">
                     <img
-                      src={company.logo}
+                      src={company.logo || logoFallback}
                       style={{ maxWidth: "110px", maxHeight: "110px" }}
                       alt={company.name}
+                      onError={useLogoFallback}
                     />
                   </div>
                   <div className="container-fluid d-flex align-items-center justify-content-start ps-4 fw-bold">

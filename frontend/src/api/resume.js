@@ -17,6 +17,9 @@ const resumeApi = {
   destroy: (id) => {
     return candidateAxios.delete(`${prefix}/${id}`);
   },
+  setDefault: (id) => {
+    return candidateAxios.post(`${prefix}/${id}/set-default`);
+  },
   // update: (id, data) => {
   //   return candidateAxios.patch(`${prefix}/${id}`, data);
   // },

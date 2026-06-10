@@ -64,9 +64,9 @@ class CertificateController extends Controller
         return response()->json("deleted successfully");
     }
 
-    public function update(Request $req)
+    public function update(Request $req, $id = null)
     {
-        $certificate = Certificate::find($req->id);
+        $certificate = Certificate::find($id ?? $req->id);
         $certificate->name = $req->name;
         $certificate->receive_date = $req->receive_date;
         $certificate->expire_date = $req->expire_date;

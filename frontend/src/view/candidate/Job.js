@@ -21,6 +21,12 @@ import { MdOutlineAttachMoney } from "react-icons/md";
 import { IoMdPeople } from "react-icons/io";
 import dayjs from "dayjs";
 import Button from "react-bootstrap/Button";
+import {
+  bannerFallback,
+  logoFallback,
+  useBannerFallback,
+  useLogoFallback,
+} from "../../common/imageFallback";
 
 function Job() {
   const { id } = useParams();
@@ -150,10 +156,11 @@ function Job() {
     <div style={{ margin: "0 10%" }}>
       <div className="container image-container d-flex justify-content-center">
         <img
-          src={job.employer.image}
+          src={job.employer.image || bannerFallback}
           className="mx-auto d-block mt-3"
           style={{ maxWidth: "93%", maxHeight: "400px" }}
           alt={"com-img-" + job.employer.id}
+          onError={useBannerFallback}
         />
       </div>
       <div className="d-flex mt-3">
@@ -165,9 +172,10 @@ function Job() {
                 style={{ minWidth: "130px" }}
               >
                 <img
-                  src={job.employer.logo}
+                  src={job.employer.logo || logoFallback}
                   width="100%"
                   alt={job.employer.name}
+                  onError={useLogoFallback}
                 />
               </div>
               <div className="container pt-2" style={{ marginLeft: "25px" }}>
@@ -483,9 +491,10 @@ function Job() {
                 style={{ width: "90px", height: "90px" }}
               >
                 <img
-                  src={job.employer.logo}
+                  src={job.employer.logo || logoFallback}
                   width="100%"
                   alt={job.employer.name}
+                  onError={useLogoFallback}
                 />
               </div>
               <div className="fw-bold ms-2">{job.employer.name}</div>

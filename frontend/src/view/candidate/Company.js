@@ -6,6 +6,12 @@ import { IoMdPeople } from "react-icons/io";
 import { MdLocationOn } from "react-icons/md";
 import { IoIosLink } from "react-icons/io";
 import { MdPhone } from "react-icons/md";
+import {
+  bannerFallback,
+  logoFallback,
+  useBannerFallback,
+  useLogoFallback,
+} from "../../common/imageFallback";
 
 function Company() {
   const { id } = useParams();
@@ -32,10 +38,11 @@ function Company() {
     <>
       <div className="container image-container d-flex justify-content-center">
         <img
-          src={infor.image}
+          src={infor.image || bannerFallback}
           className="mt-3"
           style={{ maxWidth: "93%", maxHeight: "400px" }}
           alt={infor.name}
+          onError={useBannerFallback}
         />
       </div>
       <div className="d-flex justify-content-center mt-3">
@@ -49,9 +56,10 @@ function Company() {
               style={{ height: "130px" }}
             >
               <img
-                src={infor.logo}
+                src={infor.logo || logoFallback}
                 style={{ maxHeight: "130px", maxWidth: "130px" }}
                 alt={infor.name}
+                onError={useLogoFallback}
               />
             </div>
             <div className="ms-3 mt-2">
@@ -111,9 +119,10 @@ function Company() {
               <div className="d-flex p-3">
                 <div className="border d-flex align-items-center">
                   <img
-                    src={infor.logo}
+                    src={infor.logo || logoFallback}
                     style={{ maxHeight: "130px", maxWidth: "130px" }}
                     alt={infor.name}
+                    onError={useLogoFallback}
                   />
                 </div>
                 <div className="container-fluid ms-3 mt-1">

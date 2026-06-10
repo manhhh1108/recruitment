@@ -11,6 +11,12 @@ const candMsgApi = {
   markAsUnread: (msgId) => {
     return candidateAxios.get(`${prefix}/${msgId}/updateUnreadMsg`);
   },
+  unreadCount: () => {
+    return candidateAxios.get(`${prefix}/unread-count`);
+  },
+  markAllAsRead: () => {
+    return candidateAxios.post(`${prefix}/mark-all-read`);
+  },
 };
 
 export default candMsgApi;

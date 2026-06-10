@@ -7,6 +7,7 @@ import {
   BsGeoAlt,
 } from "react-icons/bs";
 import { Link } from "react-router-dom";
+import { logoFallback, useLogoFallback } from "../../common/imageFallback";
 
 function Home() {
   const poster = process.env.PUBLIC_URL + "/image/poster4.jpg";
@@ -73,8 +74,9 @@ function Home() {
                     maxHeight: "90px",
                     maxWidth: "90px",
                   }}
-                  src={job.employer.logo}
+                  src={job.employer.logo || logoFallback}
                   alt={"hotjob" + job.id}
+                  onError={useLogoFallback}
                 />
               </Link>
               <div style={{ fontSize: "15.5px" }}>
@@ -158,8 +160,9 @@ function Home() {
                     maxHeight: "90px",
                     maxWidth: "90px",
                   }}
-                  src={company.logo}
+                  src={company.logo || logoFallback}
                   alt={"hot_company" + company.id}
+                  onError={useLogoFallback}
                 />
               </Link>
               <div className="text-center mb-2">

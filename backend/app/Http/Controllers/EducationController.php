@@ -54,10 +54,11 @@ class EducationController extends Controller
 
         return response()->json("deleted successfully");
     }
-    public function update(Request $req)
+    public function update(Request $req, $id = null)
     {
         $update_fields = $req->all();
-        Education::where('id', $req->id)->update($update_fields);
+        unset($update_fields['id']);
+        Education::where('id', $id ?? $req->id)->update($update_fields);
         $msg = 'Update successfully';
 
         return response()->json($msg);

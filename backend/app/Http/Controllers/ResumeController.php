@@ -14,13 +14,16 @@ use App\Models\Resume;
 use App\Models\Skill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ResumeController extends Controller
 {
     public function getByCurrentCandidate()
     {
         $res = Resume::where('candidate_id', Auth::user()->id)
-            ->select(['id', 'title', 'created_at', 'updated_at'])
+            ->select(['id', 'title', 'is_default', 'created_at', 'updated_at'])
+            ->orderByDesc('is_default')
+            ->orderByDesc('updated_at')
             ->get();
 
         return response()->json($res);
@@ -29,8 +32,21 @@ class ResumeController extends Controller
     {
         $resume = Resume::where('id', $id)
             ->with(['educations', 'experiences', 'projects', 'skills', 'certificates', 'prizes', 'activities', 'others'])
-            ->first();
-        $basicInfor = Resume::find($id);
+            ->firstOrFail();
+        $basicInfor = Resume::findOrFail($id);
+        $resume['basicInfor'] = $basicInfor;
+
+        return response()->json($resume);
+    }
+    public function getOwnedById($id)
+    {
+        $resume = Resume::where('id', $id)
+            ->where('candidate_id', Auth::id())
+            ->with(['educations', 'experiences', 'projects', 'skills', 'certificates', 'prizes', 'activities', 'others'])
+            ->firstOrFail();
+        $basicInfor = Resume::where('id', $id)
+            ->where('candidate_id', Auth::id())
+            ->firstOrFail();
         $resume['basicInfor'] = $basicInfor;
 
         return response()->json($resume);
@@ -38,141 +54,116 @@ class ResumeController extends Controller
     public function create(Request $req)
     {
         $candidate_id = Auth::user()->id;
-        $resume_fields = (array)$req->basicInfor;
-        $resume_fields['candidate_id'] = $candidate_id;
+        DB::transaction(function () use ($req, $candidate_id) {
+            $resume_fields = (array) $req->basicInfor;
+            $resume_fields['candidate_id'] = $candidate_id;
 
-        $resume = Resume::create($resume_fields);
-        $resume_id = $resume->id;
+            $resume = Resume::create($resume_fields);
 
-        if ($resume) {
-            if ($req->educations) {
-                for ($i = 0; $i < count($req->educations); $i++) {
-                    $education_fields = (array)$req->educations[$i];
-                    $education_fields['id'] = Education::max('id') + 1;
-                    $education_fields['candidate_id'] = $candidate_id;
-                    $education_fields['resume_id'] = $resume_id;
-                    Education::create($education_fields);
-                }
-            }
-            if ($req->experiences) {
-                for ($i = 0; $i < count($req->experiences); $i++) {
-                    $experience_fields = (array)$req->experiences[$i];
-                    $experience_fields['id'] = Experience::max('id') + 1;
-                    $experience_fields['candidate_id'] = $candidate_id;
-                    $experience_fields['resume_id'] = $resume_id;
-                    Experience::create($experience_fields);
-                }
-            }
-            if ($req->projects) {
-                for ($i = 0; $i < count($req->projects); $i++) {
-                    $project_fields = (array)$req->projects[$i];
-                    $project_fields['id'] = Project::max('id') + 1;
-                    $project_fields['candidate_id'] = $candidate_id;
-                    $project_fields['resume_id'] = $resume_id;
-                    Project::create($project_fields);
-                }
-            }
-            if ($req->skills) {
-                for ($i = 0; $i < count($req->skills); $i++) {
-                    $skill_fields = (array)$req->skills[$i];
-                    $skill_fields['id'] = Skill::max('id') + 1;
-                    $skill_fields['candidate_id'] = $candidate_id;
-                    $skill_fields['resume_id'] = $resume_id;
-                    Skill::create($skill_fields);
-                }
-            }
-            if ($req->certificates) {
-                for ($i = 0; $i < count($req->certificates); $i++) {
-                    $certificate_fields = (array)$req->certificates[$i];
-                    $certificate_fields['id'] = Certificate::max('id') + 1;
-                    $certificate_fields['candidate_id'] = $candidate_id;
-                    $certificate_fields['resume_id'] = $resume_id;
-                    Certificate::create($certificate_fields);
-                }
-            }
-            if ($req->prizes) {
-                for ($i = 0; $i < count($req->prizes); $i++) {
-                    $prize_fields = (array)$req->prizes[$i];
-                    $prize_fields['id'] = Prize::max('id') + 1;
-                    $prize_fields['candidate_id'] = $candidate_id;
-                    $prize_fields['resume_id'] = $resume_id;
-                    Prize::create($prize_fields);
-                }
-            }
-            if ($req->activities) {
-                for ($i = 0; $i < count($req->activities); $i++) {
-                    $activity_fields = (array)$req->activities[$i];
-                    $activity_fields['id'] = Activity::max('id') + 1;
-                    $activity_fields['candidate_id'] = $candidate_id;
-                    $activity_fields['resume_id'] = $resume_id;
-                    Activity::create($activity_fields);
-                }
-            }
-            if ($req->others) {
-                for ($i = 0; $i < count($req->others); $i++) {
-                    $other_fields = (array)$req->others[$i];
-                    $other_fields['id'] = Other::max('id') + 1;
-                    $other_fields['candidate_id'] = $candidate_id;
-                    $other_fields['resume_id'] = $resume_id;
-                    Other::create($other_fields);
-                }
-            }
-        }
+            $this->createResumeItems(Education::class, $req->educations, $candidate_id, $resume->id);
+            $this->createResumeItems(Experience::class, $req->experiences, $candidate_id, $resume->id);
+            $this->createResumeItems(Project::class, $req->projects, $candidate_id, $resume->id);
+            $this->createResumeItems(Skill::class, $req->skills, $candidate_id, $resume->id);
+            $this->createResumeItems(Certificate::class, $req->certificates, $candidate_id, $resume->id);
+            $this->createResumeItems(Prize::class, $req->prizes, $candidate_id, $resume->id);
+            $this->createResumeItems(Activity::class, $req->activities, $candidate_id, $resume->id);
+            $this->createResumeItems(Other::class, $req->others, $candidate_id, $resume->id);
+        });
 
         return response()->json("created successfully", 201);
     }
-    public function update(Request $req)
+    public function update(Request $req, $id = null)
     {
-        $resume_fields = (array)$req->basicInfor;
+        $candidate_id = Auth::id();
+        $resume_id = $id ?? $req->resume_id;
 
-        Resume::where('id', $req->resume_id)->update($resume_fields);
-        if ($req->educations)
-            foreach ($req->educations as $item) {
-                Education::where('id', $item['id'])->update((array)$item);
-            }
-        if ($req->experiences)
-            foreach ($req->experiences as $item) {
-                Experience::where('id', $item['id'])->update((array)$item);
-            }
-        if ($req->projects)
-            foreach ($req->projects as $item) {
-                Project::where('id', $item['id'])->update((array)$item);
-            }
-        if ($req->skills)
-            foreach ($req->skills as $item) {
-                Skill::where('id', $item['id'])->update((array)$item);
-            }
-        if ($req->certificates)
-            foreach ($req->certificates as $item) {
-                Certificate::where('id', $item['id'])->update((array)$item);
-            }
-        if ($req->prizes)
-            foreach ($req->prizes as $item) {
-                Prize::where('id', $item['id'])->update((array)$item);
-            }
-        if ($req->activities)
-            foreach ($req->activities as $item) {
-                Activity::where('id', $item['id'])->update((array)$item);
-            }
-        if ($req->others)
-            foreach ($req->others as $item) {
-                Other::where('id', $item['id'])->update((array)$item);
-            }
+        DB::transaction(function () use ($req, $candidate_id, $resume_id) {
+            $resume_fields = (array) $req->basicInfor;
+
+            Resume::where('id', $resume_id)
+                ->where('candidate_id', $candidate_id)
+                ->firstOrFail()
+                ->update($resume_fields);
+
+            $this->updateResumeItems(Education::class, $req->educations, $candidate_id, $resume_id);
+            $this->updateResumeItems(Experience::class, $req->experiences, $candidate_id, $resume_id);
+            $this->updateResumeItems(Project::class, $req->projects, $candidate_id, $resume_id);
+            $this->updateResumeItems(Skill::class, $req->skills, $candidate_id, $resume_id);
+            $this->updateResumeItems(Certificate::class, $req->certificates, $candidate_id, $resume_id);
+            $this->updateResumeItems(Prize::class, $req->prizes, $candidate_id, $resume_id);
+            $this->updateResumeItems(Activity::class, $req->activities, $candidate_id, $resume_id);
+            $this->updateResumeItems(Other::class, $req->others, $candidate_id, $resume_id);
+        });
 
         return response()->json("updated successfully");
     }
     public function destroy($id)
     {
-        Resume::findOrFail($id)->delete();
-        Education::where('resume_id', $id)->delete();
-        Experience::where('resume_id', $id)->delete();
-        Project::where('resume_id', $id)->delete();
-        Skill::where('resume_id', $id)->delete();
-        Certificate::where('resume_id', $id)->delete();
-        Prize::where('resume_id', $id)->delete();
-        Activity::where('resume_id', $id)->delete();
-        Other::where('resume_id', $id)->delete();
+        $candidate_id = Auth::id();
+
+        DB::transaction(function () use ($id, $candidate_id) {
+            Resume::where('id', $id)
+                ->where('candidate_id', $candidate_id)
+                ->firstOrFail()
+                ->delete();
+
+            Education::where('resume_id', $id)->where('candidate_id', $candidate_id)->delete();
+            Experience::where('resume_id', $id)->where('candidate_id', $candidate_id)->delete();
+            Project::where('resume_id', $id)->where('candidate_id', $candidate_id)->delete();
+            Skill::where('resume_id', $id)->where('candidate_id', $candidate_id)->delete();
+            Certificate::where('resume_id', $id)->where('candidate_id', $candidate_id)->delete();
+            Prize::where('resume_id', $id)->where('candidate_id', $candidate_id)->delete();
+            Activity::where('resume_id', $id)->where('candidate_id', $candidate_id)->delete();
+            Other::where('resume_id', $id)->where('candidate_id', $candidate_id)->delete();
+        });
 
         return response()->json("deleted successfully");
+    }
+
+    public function setDefault($id)
+    {
+        $candidate_id = Auth::id();
+
+        DB::transaction(function () use ($id, $candidate_id) {
+            Resume::where('candidate_id', $candidate_id)->update(['is_default' => false]);
+            Resume::where('id', $id)
+                ->where('candidate_id', $candidate_id)
+                ->firstOrFail()
+                ->update(['is_default' => true]);
+        });
+
+        return response()->json("updated successfully");
+    }
+
+    private function createResumeItems(string $modelClass, $items, int $candidate_id, int $resume_id): void
+    {
+        if (! $items) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            $fields = (array) $item;
+            unset($fields['id']);
+            $fields['candidate_id'] = $candidate_id;
+            $fields['resume_id'] = $resume_id;
+            $modelClass::create($fields);
+        }
+    }
+
+    private function updateResumeItems(string $modelClass, $items, int $candidate_id, int $resume_id): void
+    {
+        if (! $items) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            $fields = (array) $item;
+            unset($fields['candidate_id'], $fields['resume_id']);
+
+            $modelClass::where('id', $item['id'])
+                ->where('candidate_id', $candidate_id)
+                ->where('resume_id', $resume_id)
+                ->update($fields);
+        }
     }
 }

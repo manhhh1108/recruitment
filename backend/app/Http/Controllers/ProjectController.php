@@ -61,10 +61,11 @@ class ProjectController extends Controller
 
         return response()->json("deleted successfully");
     }
-    public function update(Request $req)
+    public function update(Request $req, $id = null)
     {
         $update_fields = $req->all();
-        Project::where('id', $req->id)->update($update_fields);
+        unset($update_fields['id']);
+        Project::where('id', $id ?? $req->id)->update($update_fields);
         $msg = 'updated successfully';
 
         return response()->json($msg);

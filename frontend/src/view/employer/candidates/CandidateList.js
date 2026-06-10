@@ -31,7 +31,14 @@ function CandidateList() {
   const [showDialog, setShowDialog] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [detail, setDetail] = useState({ application: {}, messages: [] });
-  const [detailForm, setDetailForm] = useState({ status: "viewed", title: "", content: "" });
+  const [detailForm, setDetailForm] = useState({
+    status: "viewed",
+    title: "",
+    content: "",
+    internal_note: "",
+    interview_at: "",
+    source: "",
+  });
   const [loading, setLoading] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState("");
 
@@ -123,7 +130,14 @@ function CandidateList() {
     setShowDetail(true);
     const res = await employerApi.getCandidateDetail(candidate.job_id, candidate.candidate_id);
     setDetail(res);
-    setDetailForm({ status: res.application.status, title: "", content: "" });
+    setDetailForm({
+      status: res.application.status,
+      title: "",
+      content: "",
+      internal_note: res.application.internal_note || "",
+      interview_at: res.application.interview_at ? res.application.interview_at.replace(" ", "T").slice(0, 16) : "",
+      source: res.application.source || "Website",
+    });
   };
 
   const updateDetailStatus = async () => {
@@ -131,7 +145,10 @@ function CandidateList() {
       ...detail.application,
       status: detailForm.status,
       title: detailForm.title || "Cập nhật trạng thái ứng tuyển",
-      content: detailForm.content || "Nhà tuyển dụng đã cập nhật trạng thái hồ sơ.",
+                  content: detailForm.content || "Nhà tuyển dụng đã cập nhật trạng thái hồ sơ.",
+      internal_note: detailForm.internal_note,
+      interview_at: detailForm.interview_at,
+      source: detailForm.source,
     });
     toast.success("Cập nhật trạng thái thành công");
     await openDetail(detail.application);
@@ -435,6 +452,14 @@ function CandidateList() {
                 </Form.Select>
                 <Form.Control className="mt-2" size="sm" placeholder="Tiêu đề thông báo" value={detailForm.title} onChange={(e) => setDetailForm({ ...detailForm, title: e.target.value })} />
                 <Form.Control className="mt-2" as="textarea" rows={4} placeholder="Ghi chú gửi ứng viên" value={detailForm.content} onChange={(e) => setDetailForm({ ...detailForm, content: e.target.value })} />
+                <Form.Control className="mt-2" as="textarea" rows={3} placeholder="Ghi chú nội bộ" value={detailForm.internal_note} onChange={(e) => setDetailForm({ ...detailForm, internal_note: e.target.value })} />
+                <Form.Control className="mt-2" type="datetime-local" value={detailForm.interview_at} onChange={(e) => setDetailForm({ ...detailForm, interview_at: e.target.value })} />
+                <Form.Select className="mt-2" size="sm" value={detailForm.source} onChange={(e) => setDetailForm({ ...detailForm, source: e.target.value })}>
+                  <option value="Website">Website</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Job fair">Job fair</option>
+                </Form.Select>
                 <Button className="mt-2" size="sm" onClick={updateDetailStatus}>Cập nhật</Button>
               </div>
             </div>

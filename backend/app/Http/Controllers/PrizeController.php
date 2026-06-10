@@ -63,9 +63,9 @@ class PrizeController extends Controller
         return response()->json("deleted successfully");
     }
 
-    public function update(Request $req)
+    public function update(Request $req, $id = null)
     {
-        $prize = Prize::find($req->id);
+        $prize = Prize::find($id ?? $req->id);
         $prize->name = $req->name;
         $prize->receive_date = $req->receive_date;
 

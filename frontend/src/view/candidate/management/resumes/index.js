@@ -41,6 +41,11 @@ export default function Resume() {
       }
     }
   };
+  const handleSetDefault = async (id) => {
+    await resumeApi.setDefault(id);
+    toast.success("Đã đặt CV mặc định");
+    await getResumes();
+  };
 
   useEffect(() => {
     getResumes();
@@ -66,6 +71,7 @@ export default function Resume() {
               <th className="fw-500 w-30">Tiêu đề hồ sơ</th>
               <th className="fw-500">Thời gian tạo</th>
               <th className="fw-500">Thời gian sửa</th>
+              <th className="fw-500">Mặc định</th>
               <th className="fw-500">Hành động</th>
             </tr>
           </thead>
@@ -79,6 +85,15 @@ export default function Resume() {
                   </td>
                   <td className="ts-smd">
                     {dayjs(item.updated_at).format("H:mm DD/MM/YYYY")}
+                  </td>
+                  <td className="ts-smd">
+                    {item.is_default ? (
+                      <span className="badge bg-main">Mặc định</span>
+                    ) : (
+                      <button className="btn btn-sm btn-outline-primary" onClick={() => handleSetDefault(item.id)}>
+                        Đặt mặc định
+                      </button>
+                    )}
                   </td>
                   <td className="ts-lg">
                     <div className="d-flex gap-3">

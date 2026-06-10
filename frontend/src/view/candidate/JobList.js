@@ -17,6 +17,7 @@ import Spinner from "react-bootstrap/Spinner";
 import CPagination from "../../components/CPagination";
 import CMulSelect from "../../components/CMulSelect";
 import Form from "react-bootstrap/Form";
+import { logoFallback, useLogoFallback } from "../../common/imageFallback";
 
 function JobList() {
   const nav = useNavigate();
@@ -85,6 +86,13 @@ function JobList() {
     } catch (e) {
       setIsSearchLoading(false);
     }
+  };
+
+  const formatSalary = (value) => {
+    if (!value) return "";
+    const number = Number(value);
+    if (number >= 1000000) return `${number / 1000000}`;
+    return `${number}`;
   };
 
   useEffect(() => {
@@ -164,6 +172,44 @@ function JobList() {
                 </select>
               </div>
               <div>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-control"
+                  placeholder="Lương từ (triệu)"
+                  {...register("salary_min")}
+                />
+              </div>
+              <div>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-control"
+                  placeholder="Lương đến (triệu)"
+                  {...register("salary_max")}
+                />
+              </div>
+              <div>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-control"
+                  placeholder="Kinh nghiệm từ (năm)"
+                  {...register("experience_min")}
+                />
+              </div>
+            </div>
+            <div className="row row-cols-lg-4 gap-1 gap-lg-0 mt-2 ps-3">
+              <div>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-control"
+                  placeholder="Kinh nghiệm đến (năm)"
+                  {...register("experience_max")}
+                />
+              </div>
+              <div>
                 <select className="form-select " {...register("jtype_id")}>
                   <option value="">Hình thức việc làm</option>
                   {jtypes.map((item) => (
@@ -209,6 +255,16 @@ function JobList() {
                   <option value="deadline">Sắp hết hạn</option>
                 </select>
               </div>
+              <div className="d-flex align-items-center">
+                <label className="d-flex align-items-center gap-2 mb-0">
+                  <input
+                    type="checkbox"
+                    className="form-check-input mt-0"
+                    {...register("available_only")}
+                  />
+                  <span>Còn hạn ứng tuyển</span>
+                </label>
+              </div>
             </div>
           </div>
           <div className="flex-fill ps-3 mt-2 mt-lg-0">
@@ -245,7 +301,12 @@ function JobList() {
                   className="border d-flex align-items-center px-2"
                   style={{ width: "100px", height: "100px" }}
                 >
-                  <img src={job.employer.logo} width="100%" alt={job.jname} />
+                  <img
+                    src={job.employer.logo || logoFallback}
+                    width="100%"
+                    alt={job.jname}
+                    onError={useLogoFallback}
+                  />
                 </div>
                 <div
                   className="ms-2 mt-1"
@@ -278,7 +339,7 @@ function JobList() {
                         <MdOutlineAttachMoney className="fs-5 text-main" />
                         {job.min_salary ? (
                           <span>
-                            {job.min_salary} - {job.max_salary} triệu VND
+                            {formatSalary(job.min_salary)} - {formatSalary(job.max_salary)} triệu VND
                           </span>
                         ) : (
                           <span>Theo thỏa thuận</span>
